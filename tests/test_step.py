@@ -1,4 +1,5 @@
 """Real OCC STEP round-trip. Runs in CI when the optional gmsh extra is installed."""
+import os
 import tempfile
 from pathlib import Path
 import unittest
@@ -12,7 +13,9 @@ class StepRoundTripTests(unittest.TestCase):
         try:
             import gmsh
             return gmsh
-        except (ImportError, OSError):
+        except (ImportError, OSError) as exc:
+            if os.environ.get("EZCAM_REQUIRE_GMSH") == "1":
+                raise RuntimeError("Gmsh is mandatory for CI STEP tests, native loading failed") from exc
             raise unittest.SkipTest("Install optional Gmsh runtime for native STEP acceptance")
 
     def test_real_synthetic_box_step_import(self):
