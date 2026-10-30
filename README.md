@@ -6,6 +6,21 @@ EZ CAM is an experimental, local-first CNC machining workbench built to make CAM
 
 **Status: v0.1, a working facing-path preview, NOT production CAM.** There is no claim of a fully autonomous machining engine, real material-removal simulation, safe controller postprocessor or connected BEAN assistant yet. Toolpath TXT export is intentionally marked review-only. Do not run it on any CNC controller.
 
+## Free browser workbench (GitHub Pages)
+
+**Public URL:** https://danieloculus0-bot.github.io/EZ-CAM/
+
+This static site is published from `web/` by `.github/workflows/pages.yml` only after JavaScript checks and deterministic synthetic tests pass. Every push affecting the browser workbench triggers verification and deployment automatically. The desktop Python application is independent and still needed for actual local STEP import; the browser only uses fictional stock.
+
+The public workbench includes:
+- Seven **generic, unconfigured** manufacturer profiles: Bystronic and Accurpress for press brakes; Hurco, Fadal and Doosan for 3-axis milling; HK and TRUMPF for laser cutting. These are brand categories, **not** validated equipment models, company assets, or controller settings.
+- **Free editable tool inference for milling** from illustrative material assumptions: generic cutter diameter, flute count, RPM, feed, stepover and stepdown. The formula and inputs are disclosed. This is a deterministic rule-based demonstration, **not a connected BEAN agent** or actual shop cutting-data recommendation.
+- A mathematically generated fictional facing path with top-view playback, assumed rapid/cut travel and a single-operation time/cost estimate.
+- Laser cutting and press-brake **manual-assumption** time estimators, without pretending to have nesting, laser parameter recipes, bend force checks or simulation.
+- A downloadable, expressly **unverified** estimate JSON for a future Axiom adapter, plus facing-path **review-only** text. Axiom does not yet consume the estimate contract.
+
+**Product direction:** Basic estimating and editable tool inference remain free. A future premium module may save or send real machine programs, but only after verified postprocessors, model-specific machine setup, stock and fixture simulation, and explicit operator review. No premium machine execution or live equipment control exists today.
+
 ## Run it on Windows
 
 Use PowerShell in the cloned repository:
