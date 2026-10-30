@@ -8,9 +8,9 @@ EZ CAM is an experimental, local-first CNC machining workbench built to make CAM
 
 ## Free browser workbench (GitHub Pages)
 
-**Public URL:** https://danieloculus0-bot.github.io/EZ-CAM/
+**Expected public URL (after one-time Pages activation):** https://danieloculus0-bot.github.io/EZ-CAM/
 
-This static site is published from `web/` by `.github/workflows/pages.yml` only after JavaScript checks and deterministic synthetic tests pass. Every push affecting the browser workbench triggers verification and deployment automatically. The desktop Python application is independent and still needed for actual local STEP import; the browser only uses fictional stock.
+This static site is staged for publication from `web/` by `.github/workflows/pages.yml` only after JavaScript checks and deterministic synthetic tests pass. **One-time prerequisite:** In GitHub, open this repository's **Settings > Pages > Build and deployment > Source**, select **GitHub Actions**, then rerun **Verify and publish EZ CAM browser lab** from the Actions tab. The repository's workflow token cannot create the Pages site itself. Every push affecting the browser workbench triggers verification and deployment automatically. The desktop Python application is independent and still needed for actual local STEP import; the browser only uses fictional stock.
 
 The public workbench includes:
 - Seven **generic, unconfigured** manufacturer profiles: Bystronic and Accurpress for press brakes; Hurco, Fadal and Doosan for 3-axis milling; HK and TRUMPF for laser cutting. These are brand categories, **not** validated equipment models, company assets, or controller settings.
