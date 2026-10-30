@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ez-cam"
+version = "0.1.0"
+description = "Experimental local-first STEP CAM setup and facing preview"
+requires-python = ">=3.10"
+authors = [{name="EZ CAM"}]
+dependencies = []
+
+[project.optional-dependencies]
+step = ["gmsh>=4.11,<5"]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["ezcam*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
