@@ -1,0 +1,75 @@
+name: Verify and publish EZ CAM browser lab
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ezcam-pages
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout audited public source
+        uses: actions/checkout@v4
+      - name: Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate all JavaScript modules
+        run: |
+          node --check web/app.mjs
+          node --check web/engine.mjs
+          node --check web/tool-inference.mjs
+          node --check web/machines.mjs
+          node --check web/engine.test.mjs
+      - name: Run deterministic synthetic machining and costing tests
+        run: node --test web/engine.test.mjs
+      - name: Validate deployment and confidentiality boundary
+        run: |
+          test -s web/index.html
+          test -s web/style.css
+          grep -q "NOT MACHINE VERIFIED" web/index.html
+          grep -q "fictional_browser_example" web/engine.mjs
+          grep -q "NOT_BEAN_CONNECTED" web/tool-inference.mjs
+          grep -q "capacity_verified:false" web/machines.mjs
+          if grep -R -i -E 'ez[[:space:]]+fabricating|washington[[:space:]]+metal[[:space:]]+fabricators|actual[[:space:]]+jobboss[[:space:]]+records' web/; then
+            echo "Employer-linked confidential context must not be deployed" >&2
+            exit 1
+          fi
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Package verified public browser lab
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: web
+      - name: Deploy web app
+        id: deployment
+        uses: actions/deploy-pages@v4
