@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="EZ CAM: a free experimental machining estimate and toolpath preview lab with transparent tool inference.">
+<title>EZ CAM | The Part Is the Interface</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./" aria-label="EZ CAM home"><span>EZ</span> CAM</a>
+  <span class="motto">THE PART IS THE INTERFACE</span>
+  <span class="mode">FREE PUBLIC LAB · EXPERIMENTAL</span>
+</header>
+<main>
+  <section class="hero">
+    <div><p class="kicker">Intelligent machining, without the menu maze</p>
+      <h1>Set up. <em>Simulate a path.</em><br>Understand the cost.</h1>
+      <p>Explore a genuine mathematical facing path, transparent cutter inference and single-operation estimates. This public lab is entirely fictional. For real local STEP inspection, use the separate desktop application.</p>
+    </div>
+    <nav class="hero-links"><a href="https://github.com/danieloculus0-bot/EZ-CAM">Desktop STEP app + source</a><a href="https://danieloculus0-bot.github.io/Axiom_Beta/erp/">Axiom ERP demo</a></nav>
+  </section>
+  <div class="workbench">
+    <aside class="sidebar">
+      <section class="panel"><h2><span>01</span> MACHINE FAMILY</h2>
+        <label>Generic manufacturer profile<select id="machine"><option value="hurco">Hurco · 3-axis mill</option><option value="fadal">Fadal · 3-axis mill</option><option value="doosan">Doosan · 3-axis mill</option><option value="hk">HK · sheet laser</option><option value="trumpf">TRUMPF · sheet laser</option><option value="bystronic">Bystronic · press brake</option><option value="accurpress">Accurpress · press brake</option></select></label>
+        <p class="fine" id="machine-note">Generic brand selection only. No model, controller or real capacity is configured.</p>
+      </section>
+      <section class="panel" id="mill-fields"><h2><span>02</span> STOCK + DATUM</h2>
+        <div class="fields two">
+          <label>Stock X (mm)<input id="width" type="number" min=".1" max="10000" step="1" value="86"></label>
+          <label>Stock Y (mm)<input id="height" type="number" min=".1" max="10000" step="1" value="56"></label>
+          <label>Top to remove (mm)<input id="allowance" type="number" min=".01" max="250" step=".1" value="1"></label>
+          <label>G54 XY origin<select id="origin"><option value="front-left">Front-left</option><option value="center">Stock center</option></select></label>
+        </div>
+        <p class="fine">G54 Z0 is raw-stock top. Browser demo uses fictional stock only.</p>
+        <h2><span>03</span> CUTTER INFERENCE <b class="free">FREE</b></h2>
+        <div class="fields two"><label>Illustrative material<select id="material"><option value="aluminum-6061">6061 aluminum</option><option value="steel-1018">1018 mild steel</option><option value="stainless-304">304 stainless</option><option value="acetal">Acetal</option></select></label>
+          <label>Assumed RPM limit<input id="maxrpm" type="number" min="101" max="40000" step="500" value="12000"></label>
+        </div>
+        <button id="infer" class="secondary" type="button">Suggest cutter, RPM and feeds</button>
+        <div id="suggestion" class="suggestion" aria-live="polite">Choose a generic material and infer a starting estimate. Nothing is machine-verified.</div>
+        <div class="fields two">
+          <label>Cutter diameter (mm)<input id="diameter" type="number" min=".01" max="250" step=".5" value="16"></label>
+          <label>Spindle RPM (reference)<input id="rpm" type="number" min="1" max="40000" step="1" value="4000"></label>
+          <label>Stepover (%)<input id="stepover" type="number" min=".1" max="80" step="1" value="58"></label>
+          <label>Stepdown (mm)<input id="stepdown" type="number" min=".01" max="100" step=".1" value=".8"></label>
+          <label>XY feed (mm/min)<input id="feed" type="number" min="1" max="100000" step="10" value="540"></label>
+          <label>Plunge (mm/min)<input id="plunge" type="number" min="1" max="100000" step="10" value="120"></label>
+          <label>Clearance (mm)<input id="clearance" type="number" min=".01" max="10000" step=".5" value="5"></label>
+          <label>Assumed rapid (mm/min)<input id="rapid" type="number" min="1" max="100000" step="100" value="3000"></label>
+        </div>
+      </section>
+      <section class="panel" id="laser-fields" hidden><h2><span>02</span> LASER TIME INPUTS</h2>
+        <p class="fine">User-entered assumptions; there is no nesting, laser program, or speed database.</p>
+        <div class="fields two">
+          <label>Cut length (mm)<input id="cutlength" type="number" min="0" max="10000000" value="2200"></label>
+          <label>Assumed cut speed (mm/min)<input id="cutspeed" type="number" min=".01" max="500000" value="2500"></label>
+          <label>Pierce count<input id="pierces" type="number" min="0" max="100000" step="1" value="6"></label>
+          <label>Seconds per pierce<input id="piercetime" type="number" min="0" max="300" value="1.5"></label>
+        </div>
+      </section>
+      <section class="panel" id="brake-fields" hidden><h2><span>02</span> PRESS BRAKE TIME INPUTS</h2>
+        <p class="fine">Manual estimates only. No tool selection, tonnage, collision or bend-sequence validation.</p>
+        <div class="fields two">
+          <label>Bends per part<input id="bends" type="number" min="0" max="10000" step="1" value="4"></label>
+          <label>Assumed sec/bend<input id="bendtime" type="number" min="0" max="600" value="18"></label>
+          <label>Handling sec/part<input id="handling" type="number" min="0" max="10000" value="20"></label>
+        </div>
+      </section>
+      <section class="panel"><h2><span>04</span> QUOTE ASSUMPTIONS</h2>
+        <div class="fields two">
+          <label>Part quantity<input id="quantity" type="number" min="1" max="100000" step="1" value="10"></label>
+          <label>Machine rate ($/hour)<input id="rate" type="number" min="0" max="100000" step="1" value="85"></label>
+          <label>Setup (min)<input id="setuptime" type="number" min="0" max="100000" step="5" value="30"></label>
+          <label>Overhead (%)<input id="overhead" type="number" min="0" max="500" value="10"></label>
+          <label>Target margin (%)<input id="margin" type="number" min="0" max="95" value="20"></label>
+        </div>
+        <button id="calculate" class="primary" type="button">BUILD ESTIMATE</button>
+        <button id="export" class="secondary" type="button" disabled>Download Axiom-ready estimate JSON</button>
+        <button id="listing" class="secondary" type="button" disabled>Download review-only path TXT</button>
+      </section>
+    </aside>
+    <section class="stage">
+      <div class="stage-head"><div><h2 id="stage-title">TOP VIEW / FACING PATH</h2><p id="stage-note">Synthetic demo stock. Cutter-center paths only, not removal simulation.</p></div><span class="unverified">NOT MACHINE VERIFIED</span></div>
+      <canvas id="preview" width="960" height="620" aria-label="Synthetic stock and facing cutter path visualization" role="img"></canvas>
+      <div class="playbar"><span>PATH PLAYBACK</span><input id="progress" aria-label="Path playback progress" type="range" min="0" max="100" value="100"><button id="replay" type="button" class="secondary">Replay</button></div>
+      <section class="outcome"><div class="metric"><span>Est. motion / part</span><strong id="motion">—</strong></div><div class="metric"><span>Est. operation total</span><strong id="cost">—</strong></div><div class="metric"><span>Est. operation / part</span><strong id="unitcost">—</strong></div></section>
+      <div id="result" class="result" role="status" aria-live="polite">Build an estimate to see a calculated result. Pricing inputs are illustrative, not your shop's rates.</div>
+      <p class="disclaimer">Every example is generic and synthetic. No proprietary drawings, equipment settings or customer data are loaded. No connected BEAN agent, production CAM, approved quote, collision simulation or controller post is present. Program export is never machine-ready.</p>
+    </section>
+  </div>
+  <footer><p>EZ CAM · <a href="https://github.com/danieloculus0-bot/EZ-CAM">Standalone source</a> · <a href="https://github.com/danieloculus0-bot/EZ-FEA">Related EZ-FEA</a> · <a href="https://github.com/danieloculus0-bot/BEAN">BEAN research</a> · Independent review required</p></footer>
+</main>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>
