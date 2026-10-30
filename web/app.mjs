@@ -1,0 +1,193 @@
+import {planFacing,estimateFacing,reviewOnlyListing} from "./engine.mjs";
+import {inferFacingTool} from "./tool-inference.mjs";
+import {machineById,MACHINE_FAMILIES,estimateProcess} from "./machines.mjs";
+const $=id=>document.getElementById(id);
+const val=id=>Number($(id).value);
+const fmt=(n,d=2)=>Number(n).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d});
+const money=n=>Number(n).toLocaleString("en-US",{style:"currency",currency:"USD"});
+let activePlan=null,activeEstimate=null,activeInference=null,anim=null;
+const canvas=$("preview"),ctx=canvas.getContext("2d");
+function selected(){return machineById($("machine").value);}
+function explain(message,error=false){$("result").textContent=message;$("result").classList.toggle("error",error);}
+function clearResults(){
+ activePlan=null;activeEstimate=null;
+ $("export").disabled=true;$("listing").disabled=true;
+ $("motion").textContent="—";$("cost").textContent="—";$("unitcost").textContent="—";
+ $("progress").value=100;
+ if(anim!==null){cancelAnimationFrame(anim);anim=null;}
+ draw();
+}
+function familyChange(){
+ const m=selected(),family=m.family;
+ $("mill-fields").hidden=family!=="mill";
+ $("laser-fields").hidden=family!=="laser";
+ $("brake-fields").hidden=family!=="brake";
+ $("stage-title").textContent=family==="mill"?"TOP VIEW / FACING PATH":family==="laser"?"SHEET LASER / CYCLE ESTIMATE":"PRESS BRAKE / CYCLE ESTIMATE";
+ $("stage-note").textContent=MACHINE_FAMILIES[family].details;
+ $("machine-note").textContent=m.brand+" profile: generic "+MACHINE_FAMILIES[family].label.toLowerCase()+". Model, controller, capacity and available tooling are unconfigured.";
+ activeInference=null;
+ clearResults();
+ explain("Selected "+m.brand+" (generic "+family+"). Build an estimate to calculate a fictional single operation.");
+}
+function infer(){
+ try{
+  const inf=inferFacingTool({width_mm:val("width"),height_mm:val("height"),material:$("material").value,machine_max_rpm:val("maxrpm")});
+  const s=inf.suggested;activeInference=inf;
+  $("diameter").value=s.diameter_mm;$("rpm").value=s.rpm;
+  $("stepover").value=Number((s.stepover_ratio*100).toFixed(2));
+  $("stepdown").value=s.stepdown_mm;$("feed").value=s.feed_mm_min;
+  $("plunge").value=s.plunge_mm_min;$("clearance").value=s.clearance_mm;
+  $("rapid").value=s.rapid_mm_min;
+  $("suggestion").textContent=
+   "INFERENCE · "+s.cutter+"\n"+
+   "Ø"+s.diameter_mm+" mm · "+fmt(s.rpm,0)+" RPM · "+fmt(s.feed_mm_min,0)+" mm/min · "+s.flutes+" flutes\n"+
+   "Vc assumption "+inf.basis.assumed_cutting_speed_m_min+" m/min; chip-load assumption "+inf.basis.assumed_chip_load_mm_tooth+" mm/tooth. "+
+   "Rule-based estimate, not live BEAN or machine-verified.";
+  clearResults();explain("Suggested inputs populated. Change any field, then BUILD ESTIMATE. All inferred values require machinist review.");
+ }catch(error){$("suggestion").textContent="Cannot infer: "+error.message;clearResults();}
+}
+function commonInputs(){
+ return {quantity:val("quantity"), machine_rate_per_hour:val("rate"),setup_minutes:val("setuptime"),
+ overhead_percent:val("overhead"),margin_percent:val("margin")};
+}
+function build(){
+ try{
+  const m=selected(),q=commonInputs();
+  if(m.family==="mill"){
+   const params={width_mm:val("width"),height_mm:val("height"),facing_allowance_mm:val("allowance"),
+     origin:$("origin").value,diameter_mm:val("diameter"),stepover_ratio:val("stepover")/100,
+     stepdown_mm:val("stepdown"),feed_mm_min:val("feed"),plunge_mm_min:val("plunge"),
+     clearance_mm:val("clearance"),rapid_mm_min:val("rapid")};
+   activePlan=planFacing(params);
+   activeEstimate=estimateFacing(activePlan,q);
+   activeEstimate.machine={brand:m.brand,family:m.family,model:null,controller:null,capacity_verified:false};
+   activeEstimate.inference=activeInference?{...activeInference,operator_review_required:true}:{status:"MANUAL_ENTRY",operator_review_required:true};
+   activeEstimate.warnings.push("Machine brand is a generic unconfigured profile. Spindle RPM is reference-only; not emitted in any machine program.");
+   activeEstimate.warnings.push("Public demo has NO imported CAD, stock-removal simulation or CNC-qualified toolpath.");
+   $("listing").disabled=false;
+   explain("FACING ONLY · "+activePlan.passes+" Z level(s) · "+activePlan.rows_per_pass+" rows/level · "+activePlan.moves.length+" path moves. "+
+      "Feed path "+fmt(activePlan.metrics.feed_length_mm,0)+" mm. These are idealized motion-time and cost calculations.");
+  }else if(m.family==="laser"){
+   activePlan=null;
+   activeEstimate=estimateProcess(m.id,{...q,
+    cut_length_mm:val("cutlength"),cut_speed_mm_min:val("cutspeed"),pierce_count:val("pierces"),pierce_seconds:val("piercetime")});
+   $("listing").disabled=true;
+   explain("LASER ESTIMATE ONLY · Time = entered cut length / assumed cut speed + pierce allowance. "+
+      "Not a nesting result, verified cutting recipe, or laser machine program.");
+  }else{
+   activePlan=null;
+   activeEstimate=estimateProcess(m.id,{...q,
+    bend_count:val("bends"),seconds_per_bend:val("bendtime"),handling_seconds:val("handling")});
+   $("listing").disabled=true;
+   explain("PRESS BRAKE ESTIMATE ONLY · Time = entered bends × assumed seconds per bend + handling. "+
+      "Not a bend sequence, tonnage or tooling validation.");
+  }
+  $("motion").textContent=fmt(activeEstimate.metrics.estimated_motion_min_per_part)+" min";
+  $("cost").textContent=money(activeEstimate.quote_basis.estimated_operation_total);
+  $("unitcost").textContent=money(activeEstimate.quote_basis.estimated_operation_per_part);
+  $("progress").value=100;
+  $("export").disabled=false;
+  draw();
+ }catch(error){clearResults();explain("Estimate blocked: "+error.message,true);}
+}
+function download(name,text,type){
+ const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function exportEstimate(){
+ if(!activeEstimate)return;
+ download("ezcam-unverified-operation-estimate.json",JSON.stringify(activeEstimate,null,2)+"\n","application/json");
+}
+function exportListing(){
+ if(!activePlan||!activeEstimate)return;
+ download("ezcam-facing-REVIEW-ONLY.txt",reviewOnlyListing(activePlan),"text/plain");
+}
+function replay(){
+ if(!activePlan)return;
+ if(anim!==null){cancelAnimationFrame(anim);anim=null;}
+ const start=performance.now(),duration=3500;
+ function frame(now){
+  const p=Math.min(100,(now-start)*100/duration);
+  $("progress").value=p;draw();
+  anim=p<100?requestAnimationFrame(frame):null;
+ }
+ $("progress").value=0;draw();anim=requestAnimationFrame(frame);
+}
+function draw(){
+ const w=canvas.width,h=canvas.height, m=selected();
+ ctx.fillStyle="#101c16";ctx.fillRect(0,0,w,h);
+ ctx.strokeStyle="rgba(118,154,124,.13)";ctx.lineWidth=1;
+ for(let x=0;x<w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+ for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+ ctx.fillStyle="#a0b7a4";ctx.font="15px Segoe UI,Arial";
+ if(m.family!=="mill"){
+  ctx.textAlign="center";
+  ctx.fillStyle="#b6eb83";ctx.font="bold 23px Segoe UI,Arial";
+  ctx.fillText(m.brand.toUpperCase()+" · "+MACHINE_FAMILIES[m.family].label.toUpperCase(),w/2,h/2-27);
+  ctx.fillStyle="#afc9b0";ctx.font="17px Segoe UI,Arial";
+  ctx.fillText("No CAD, machine post or process simulation is loaded.",w/2,h/2+10);
+  ctx.fillText("Only bounded user-assumption cycle-time calculations.",w/2,h/2+40);
+  ctx.textAlign="left";return;
+ }
+ const sw=Number($("width").value),sh=Number($("height").value);
+ if(!Number.isFinite(sw)||!Number.isFinite(sh)||sw<=0||sh<=0){
+  ctx.fillText("Enter valid stock dimensions to preview.",20,30);return;
+ }
+ const d=Math.max(1,Number($("diameter").value)||10),pad=Math.max(d,6);
+ const scale=Math.min((w-160)/(sw+2*pad),(h-160)/(sh+2*pad));
+ if(scale<=0)return;
+ const left=(w-sw*scale)/2,bot=(h+sh*scale)/2;
+ const xy=(x,y)=>[left+x*scale,bot-y*scale];
+ ctx.fillStyle="#39594a";ctx.strokeStyle="#b8d2be";ctx.lineWidth=2;
+ ctx.fillRect(left,bot-sh*scale,sw*scale,sh*scale);
+ ctx.strokeRect(left,bot-sh*scale,sw*scale,sh*scale);
+ ctx.fillStyle="#6d9c87";ctx.globalAlpha=.7;
+ ctx.fillRect(left+sw*.12*scale,bot-sh*.88*scale,sw*.76*scale,sh*.76*scale);
+ ctx.globalAlpha=1;
+ const ox=$("origin").value==="center"?sw/2:0,oy=$("origin").value==="center"?sh/2:0;
+ const [cx,cy]=xy(ox,oy);
+ ctx.strokeStyle="#b4ec7b";ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(cx-9,cy);ctx.lineTo(cx+18,cy);ctx.moveTo(cx,cy+9);ctx.lineTo(cx,cy-18);ctx.stroke();
+ ctx.font="bold 12px Segoe UI,Arial";ctx.fillStyle="#c7f3aa";ctx.fillText("G54",cx+9,cy+18);
+ if(activePlan){
+  const limit=Math.max(1,Math.floor(activePlan.moves.length*Number($("progress").value)/100));
+  let previous=null,last=null;
+  for(const move of activePlan.moves.slice(0,limit)){
+   if(previous){
+    const [a,b]=xy(previous.x,previous.y),[c,e]=xy(move.x,move.y);
+    ctx.strokeStyle=move.mode==="feed"&&Math.abs(previous.z-move.z)<1e-8?"#c0f68d":"#d4a66d";
+    ctx.lineWidth=move.mode==="feed"?2:1;
+    ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,e);ctx.stroke();
+   }previous=move;last=move;
+  }
+  if(last){
+   const [a,b]=xy(last.x,last.y),r=d*scale/2;
+   ctx.beginPath();ctx.arc(a,b,Math.max(2,r),0,2*Math.PI);
+   ctx.strokeStyle="#fff4b3";ctx.lineWidth=3;ctx.stroke();
+   ctx.textAlign="right";ctx.fillStyle="#dbeedc";ctx.fillText("TOOL Z "+fmt(last.z)+" mm",w-22,h-20);
+   ctx.textAlign="left";
+  }
+ }
+ ctx.fillStyle="#c5dec8";ctx.font="14px Segoe UI,Arial";
+ ctx.fillText("SYNTHETIC STOCK · "+fmt(sw,0)+" × "+fmt(sh,0)+" mm",20,29);
+ ctx.fillText("Top view; NOT swept-stock removal or collision simulation",20,h-20);
+}
+$("machine").addEventListener("change",familyChange);
+$("infer").addEventListener("click",infer);
+$("calculate").addEventListener("click",build);
+$("export").addEventListener("click",exportEstimate);
+$("listing").addEventListener("click",exportListing);
+$("progress").addEventListener("input",()=>{if(anim!==null){cancelAnimationFrame(anim);anim=null;}draw();});
+$("replay").addEventListener("click",replay);
+document.querySelectorAll(".sidebar input,.sidebar select").forEach(el=>{
+ if(el.id==="machine")return;
+ el.addEventListener("change",()=>{
+   if(!["infer","calculate"].includes(el.id)){
+     const was=Boolean(activeEstimate);
+     clearResults();
+     if(was)explain("Inputs changed. Rebuild estimate to refresh results.");
+   }
+ });
+});
+familyChange();
