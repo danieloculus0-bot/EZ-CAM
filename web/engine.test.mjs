@@ -147,14 +147,16 @@ test("black-neutral theme uses black surfaces in browser and desktop workbenches
  const css=readFileSync(new URL("./style.css",import.meta.url),"utf8");
  const browser=readFileSync(new URL("./app.mjs",import.meta.url),"utf8");
  const desktop=readFileSync(new URL("../ezcam/desktop.py",import.meta.url),"utf8");
- assert.match(css,/:root\\{[^}]*background:#000000/);
- assert.match(css,/\\.panel,\\.stage\\{[^}]*background:#0a0a0a/);
- assert.match(css,/\\.stage-head\\{[^}]*background:#0d0d0d/);
- assert.match(css,/label input,label select\\{[^}]*background:#080808/);
- assert.match(css,/\\.metric strong\\{[^}]*color:#ededed/);
- assert.match(browser,/ctx\\.fillStyle="#050505";ctx\\.fillRect\\(0,0,w,h\\)/);
- assert.match(browser,/ctx\\.fillStyle="#303030";ctx\\.strokeStyle="#a8a8a8"/);
- assert.match(desktop,/BG, PANEL, CANVAS_BG = "#000000", "#0b0b0b", "#050505"/);
- assert.match(desktop,/style="EZDark.TCombobox"/);
- assert.doesNotMatch(css,/background:#(?:111a16|17231c|1a2820|203328|294537)/);
+ assert.ok(css.includes(':root{font-family:Inter,"Segoe UI",Arial,sans-serif;background:#000000'));
+ assert.ok(css.includes('.panel,.stage{border:1px solid #2b2b2b;background:#0a0a0a'));
+ assert.ok(css.includes('.stage-head{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:15px 18px;background:#0d0d0d'));
+ assert.ok(css.includes('label input,label select{margin-top:5px;width:100%;min-width:0;border:1px solid #444444;background:#080808'));
+ assert.ok(css.includes('.metric strong{font-size:clamp(18px,2.1vw,30px);color:#ededed'));
+ assert.ok(browser.includes('ctx.fillStyle="#050505";ctx.fillRect(0,0,w,h);'));
+ assert.ok(browser.includes('ctx.fillStyle="#303030";ctx.strokeStyle="#a8a8a8"'));
+ assert.ok(desktop.includes('BG, PANEL, CANVAS_BG = "#000000", "#0b0b0b", "#050505"'));
+ assert.ok(desktop.includes('style="EZDark.TCombobox"'));
+ for(const oldColor of ["#111a16","#17231c","#1a2820","#203328","#294537"]){
+   assert.ok(!css.includes("background:"+oldColor),"Old green background: "+oldColor);
+ }
 });
