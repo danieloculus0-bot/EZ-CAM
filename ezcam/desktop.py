@@ -14,8 +14,8 @@ from .cad import Part, inspect_step
 from .core import Setup, Tool, Plan, plan_facing
 from .post import review_gcode, export_plan_json
 
-BG, PANEL, CANVAS_BG = "#111916", "#1b2923", "#14211c"
-TEXT, MUTED, LIME, TEAL = "#e5f2e9", "#92a99c", "#b1f06c", "#68cfbc"
+BG, PANEL, CANVAS_BG = "#000000", "#0b0b0b", "#050505"
+TEXT, MUTED, LIME, TEAL = "#eeeeee", "#acacac", "#a6ca8d", "#a0aebd"
 
 
 class Desktop:
@@ -29,6 +29,14 @@ class Desktop:
         self.root.geometry("1120x720")
         self.root.minsize(900, 590)
         self.root.configure(bg=BG)
+        # Keep platform comboboxes dark, including their read-only selection field.
+        style = ttk.Style(self.root)
+        style.configure("EZDark.TCombobox", foreground=TEXT, fieldbackground="#090909",
+                        background="#1b1b1b", bordercolor="#333333", arrowcolor=TEXT,
+                        selectforeground=TEXT, selectbackground="#202020")
+        style.map("EZDark.TCombobox",
+                  fieldbackground=[("readonly", "#090909")],
+                  foreground=[("readonly", TEXT)])
         self.margin_mm = 3.0
         self.vars = {
             "stock_w": tk.StringVar(value="86"),
@@ -57,7 +65,7 @@ class Desktop:
         tk.Label(head, text="EZ CAM", bg=BG, fg=LIME, font=("Segoe UI", 22, "bold")).pack(side="left")
         tk.Label(head, text="  STEP IN  •  SET DATUM  •  SELECT TOOL  •  PREVIEW",
                  bg=BG, fg=MUTED, font=("Segoe UI", 10)).pack(side="left", pady=6)
-        tk.Label(head, text="V0.1 · REVIEW ONLY", bg=BG, fg="#eed49a",
+        tk.Label(head, text="V0.1 · REVIEW ONLY", bg=BG, fg="#decf9e",
                  font=("Segoe UI", 10, "bold")).pack(side="right")
 
         body = tk.Frame(self.root, bg=BG)
@@ -123,8 +131,8 @@ class Desktop:
 
     def _button(self, parent, title, action, strong=False, compact=False):
         button = tk.Button(parent, text=title, command=action, relief="flat",
-                           bg=LIME if strong else "#2b4438", fg="#10210e" if strong else TEXT,
-                           activebackground=TEAL, activeforeground="#14211c", cursor="hand2",
+                           bg=LIME if strong else "#1b1b1b", fg="#101010" if strong else TEXT,
+                           activebackground=TEAL, activeforeground="#101010", cursor="hand2",
                            font=("Segoe UI", 9, "bold" if strong else "normal"), pady=5,
                            padx=8)
         button.pack(side="left" if compact else "top", fill="x" if not compact else "none", pady=1)
@@ -135,7 +143,7 @@ class Desktop:
         row.pack(fill="x", pady=0)
         tk.Label(row, text=title, bg=PANEL, fg=TEXT, anchor="w",
                  font=("Segoe UI", 9)).pack(side="left")
-        tk.Entry(row, textvariable=self.vars[key], bg="#0b1610", fg=TEXT,
+        tk.Entry(row, textvariable=self.vars[key], bg="#090909", fg=TEXT,
                  insertbackground=LIME, highlightthickness=0, width=8,
                  justify="right").pack(side="right")
 
@@ -145,7 +153,7 @@ class Desktop:
         tk.Label(row, text=title, bg=PANEL, fg=TEXT, anchor="w",
                  font=("Segoe UI", 9)).pack(side="left")
         ttk.Combobox(row, textvariable=self.vars[key], values=choices,
-                     state="readonly", width=9).pack(side="right")
+                     state="readonly", style="EZDark.TCombobox", width=9).pack(side="right")
 
     def _invalidate(self, *_):
         self.plan = None
@@ -268,7 +276,7 @@ class Desktop:
         xy = lambda x, y: (base_x + x * scale, base_y - y * scale)
         x0,y0 = xy(0,0)
         x1,y1 = xy(setup.width_mm,setup.height_mm)
-        c.create_rectangle(x0,y1,x1,y0, fill="#355047", outline="#b3c9b9", width=2)
+        c.create_rectangle(x0,y1,x1,y0, fill="#303030", outline="#bbbbbb", width=2)
         # Imported STEP tessellation is an actual CAD-derived 2D projection.
         if self.part:
             p = self.part
@@ -279,18 +287,18 @@ class Desktop:
                 pts = []
                 for vertex in tri:
                     pts.extend(xy(vertex[0] - p.bounds_mm[0] + mx, vertex[1] - p.bounds_mm[1] + my))
-                shade = "#63877b" if sum(v[2] for v in tri) / 3 > (p.bounds_mm[2] + p.bounds_mm[5]) / 2 else "#426b60"
+                shade = "#565656" if sum(v[2] for v in tri) / 3 > (p.bounds_mm[2] + p.bounds_mm[5]) / 2 else "#383838"
                 c.create_polygon(*pts, fill=shade, outline="")
             c.create_text(w/2, 22, text="Imported STEP · top projection · not collision verified", fill=MUTED)
         else:
             mx, my = (setup.width_mm - 80)/2, (setup.height_mm - 50)/2
             pa,pb = xy(mx,my)
             pc,pd = xy(mx+80,my+50)
-            c.create_rectangle(pa,pd,pc,pb,fill="#58796d",outline="#a4d0bc",width=1)
+            c.create_rectangle(pa,pd,pc,pb,fill="#525252",outline="#aaaaaa",width=1)
             for ix in (20,60):
                 cx,cy = xy(mx+ix,my+25)
                 rr = 3*scale
-                c.create_oval(cx-rr,cy-rr,cx+rr,cy+rr,fill=CANVAS_BG,outline="#c0ded0",width=2)
+                c.create_oval(cx-rr,cy-rr,cx+rr,cy+rr,fill=CANVAS_BG,outline="#cccccc",width=2)
             c.create_text(w/2, 22, text="FICTIONAL PART / PREVIEW ONLY", fill=MUTED)
         # Datum indicator: centered-origin or front-left, both Z0 on stock top.
         ox,oy = (0,0) if setup.origin == "front-left" else (setup.width_mm/2,setup.height_mm/2)
@@ -308,12 +316,12 @@ class Desktop:
                     if move.mode == "feed" and abs(move.z-last.z) < 1e-7:
                         c.create_line(sx,sy,ex,ey,fill=LIME,width=1.4)
                     elif move.mode == "rapid":
-                        c.create_line(sx,sy,ex,ey,fill="#de9c66",dash=(3,4))
+                        c.create_line(sx,sy,ex,ey,fill="#c8a17d",dash=(3,4))
                 last = move
             if last is not None:
                 px,py = xy(last.x,last.y)
                 rr = max(2,tool.diameter_mm*scale/2)
-                c.create_oval(px-rr,py-rr,px+rr,py+rr,outline="#f9e09a",width=2)
+                c.create_oval(px-rr,py-rr,px+rr,py+rr,outline="#ead7a0",width=2)
                 c.create_text(w-12,h-12,text=f"TOOL Z {last.z:.2f} mm",anchor="se",fill=TEXT)
         c.create_text(12,h-12,text=f"STOCK {setup.width_mm:g} × {setup.height_mm:g} mm",
                       anchor="sw",fill=TEXT)

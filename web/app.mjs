@@ -118,16 +118,16 @@ function replay(){
 }
 function draw(){
  const w=canvas.width,h=canvas.height, m=selected();
- ctx.fillStyle="#101c16";ctx.fillRect(0,0,w,h);
- ctx.strokeStyle="rgba(118,154,124,.13)";ctx.lineWidth=1;
+ ctx.fillStyle="#050505";ctx.fillRect(0,0,w,h);
+ ctx.strokeStyle="rgba(170,170,170,.11)";ctx.lineWidth=1;
  for(let x=0;x<w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
  for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
- ctx.fillStyle="#a0b7a4";ctx.font="15px Segoe UI,Arial";
+ ctx.fillStyle="#b1b1b1";ctx.font="15px Segoe UI,Arial";
  if(m.family!=="mill"){
   ctx.textAlign="center";
-  ctx.fillStyle="#b6eb83";ctx.font="bold 23px Segoe UI,Arial";
+  ctx.fillStyle="#e8e8e8";ctx.font="bold 23px Segoe UI,Arial";
   ctx.fillText(m.brand.toUpperCase()+" · "+MACHINE_FAMILIES[m.family].label.toUpperCase(),w/2,h/2-27);
-  ctx.fillStyle="#afc9b0";ctx.font="17px Segoe UI,Arial";
+  ctx.fillStyle="#b2b2b2";ctx.font="17px Segoe UI,Arial";
   ctx.fillText("No CAD, machine post or process simulation is loaded.",w/2,h/2+10);
   ctx.fillText("Only bounded user-assumption cycle-time calculations.",w/2,h/2+40);
   ctx.textAlign="left";return;
@@ -141,24 +141,24 @@ function draw(){
  if(scale<=0)return;
  const left=(w-sw*scale)/2,bot=(h+sh*scale)/2;
  const xy=(x,y)=>[left+x*scale,bot-y*scale];
- ctx.fillStyle="#39594a";ctx.strokeStyle="#b8d2be";ctx.lineWidth=2;
+ ctx.fillStyle="#303030";ctx.strokeStyle="#a8a8a8";ctx.lineWidth=2;
  ctx.fillRect(left,bot-sh*scale,sw*scale,sh*scale);
  ctx.strokeRect(left,bot-sh*scale,sw*scale,sh*scale);
- ctx.fillStyle="#6d9c87";ctx.globalAlpha=.7;
+ ctx.fillStyle="#484848";ctx.globalAlpha=.7;
  ctx.fillRect(left+sw*.12*scale,bot-sh*.88*scale,sw*.76*scale,sh*.76*scale);
  ctx.globalAlpha=1;
  const ox=$("origin").value==="center"?sw/2:0,oy=$("origin").value==="center"?sh/2:0;
  const [cx,cy]=xy(ox,oy);
- ctx.strokeStyle="#b4ec7b";ctx.lineWidth=2;
+ ctx.strokeStyle="#a6ca8d";ctx.lineWidth=2;
  ctx.beginPath();ctx.moveTo(cx-9,cy);ctx.lineTo(cx+18,cy);ctx.moveTo(cx,cy+9);ctx.lineTo(cx,cy-18);ctx.stroke();
- ctx.font="bold 12px Segoe UI,Arial";ctx.fillStyle="#c7f3aa";ctx.fillText("G54",cx+9,cy+18);
+ ctx.font="bold 12px Segoe UI,Arial";ctx.fillStyle="#c6c6c6";ctx.fillText("G54",cx+9,cy+18);
  if(activePlan){
   const limit=Math.max(1,Math.floor(activePlan.moves.length*Number($("progress").value)/100));
   let previous=null,last=null;
   for(const move of activePlan.moves.slice(0,limit)){
    if(previous){
     const [a,b]=xy(previous.x,previous.y),[c,e]=xy(move.x,move.y);
-    ctx.strokeStyle=move.mode==="feed"&&Math.abs(previous.z-move.z)<1e-8?"#c0f68d":"#d4a66d";
+    ctx.strokeStyle=move.mode==="feed"&&Math.abs(previous.z-move.z)<1e-8?"#a6ca8d":"#c3a17f";
     ctx.lineWidth=move.mode==="feed"?2:1;
     ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,e);ctx.stroke();
    }previous=move;last=move;
@@ -166,12 +166,12 @@ function draw(){
   if(last){
    const [a,b]=xy(last.x,last.y),r=d*scale/2;
    ctx.beginPath();ctx.arc(a,b,Math.max(2,r),0,2*Math.PI);
-   ctx.strokeStyle="#fff4b3";ctx.lineWidth=3;ctx.stroke();
-   ctx.textAlign="right";ctx.fillStyle="#dbeedc";ctx.fillText("TOOL Z "+fmt(last.z)+" mm",w-22,h-20);
+   ctx.strokeStyle="#eee1b3";ctx.lineWidth=3;ctx.stroke();
+   ctx.textAlign="right";ctx.fillStyle="#dedede";ctx.fillText("TOOL Z "+fmt(last.z)+" mm",w-22,h-20);
    ctx.textAlign="left";
   }
  }
- ctx.fillStyle="#c5dec8";ctx.font="14px Segoe UI,Arial";
+ ctx.fillStyle="#c7c7c7";ctx.font="14px Segoe UI,Arial";
  ctx.fillText("SYNTHETIC STOCK · "+fmt(sw,0)+" × "+fmt(sh,0)+" mm",20,29);
  ctx.fillText("Top view; NOT swept-stock removal or collision simulation",20,h-20);
 }
