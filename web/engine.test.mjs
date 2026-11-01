@@ -142,3 +142,19 @@ test("all process estimates reject invalid counts and margin",()=>{
  assert.throws(()=>estimateProcess("bystronic",{...quote,bend_count:-1,seconds_per_bend:15,handling_seconds:2}));
  assert.throws(()=>estimateProcess("hurco",quote));
 });
+
+test("black-neutral theme uses black surfaces in browser and desktop workbenches",()=>{
+ const css=readFileSync(new URL("./style.css",import.meta.url),"utf8");
+ const browser=readFileSync(new URL("./app.mjs",import.meta.url),"utf8");
+ const desktop=readFileSync(new URL("../ezcam/desktop.py",import.meta.url),"utf8");
+ assert.match(css,/:root\\{[^}]*background:#000000/);
+ assert.match(css,/\\.panel,\\.stage\\{[^}]*background:#0a0a0a/);
+ assert.match(css,/\\.stage-head\\{[^}]*background:#0d0d0d/);
+ assert.match(css,/label input,label select\\{[^}]*background:#080808/);
+ assert.match(css,/\\.metric strong\\{[^}]*color:#ededed/);
+ assert.match(browser,/ctx\\.fillStyle="#050505";ctx\\.fillRect\\(0,0,w,h\\)/);
+ assert.match(browser,/ctx\\.fillStyle="#303030";ctx\\.strokeStyle="#a8a8a8"/);
+ assert.match(desktop,/BG, PANEL, CANVAS_BG = "#000000", "#0b0b0b", "#050505"/);
+ assert.match(desktop,/style="EZDark.TCombobox"/);
+ assert.doesNotMatch(css,/background:#(?:111a16|17231c|1a2820|203328|294537)/);
+});
