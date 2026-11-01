@@ -40,8 +40,10 @@ function infer(){
   $("rapid").value=s.rapid_mm_min;
   $("suggestion").textContent=
    "INFERENCE · "+s.cutter+"\n"+
-   "Ø"+s.diameter_mm+" mm · "+fmt(s.rpm,0)+" RPM · "+fmt(s.feed_mm_min,0)+" mm/min · "+s.flutes+" flutes\n"+
+   inf.basis.material+"\n"+
+   "Ø"+s.diameter_mm+" mm · "+fmt(s.rpm,0)+" RPM · XY "+fmt(s.feed_mm_min,0)+" mm/min · plunge "+fmt(s.plunge_mm_min,0)+" mm/min · "+s.flutes+" flutes\n"+
    "Vc assumption "+inf.basis.assumed_cutting_speed_m_min+" m/min; chip-load assumption "+inf.basis.assumed_chip_load_mm_tooth+" mm/tooth. "+
+   (inf.basis.grade_unspecified?"PROCESS LABEL ONLY: material grade unknown; 1018-like mild steel assumed. ":"")+
    "Rule-based estimate, not live BEAN or machine-verified.";
   clearResults();explain("Suggested inputs populated. Change any field, then BUILD ESTIMATE. All inferred values require machinist review.");
  }catch(error){$("suggestion").textContent="Cannot infer: "+error.message;clearResults();}

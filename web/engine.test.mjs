@@ -1,7 +1,8 @@
 import test from "node:test";
+import {readFileSync} from "node:fs";
 import assert from "node:assert/strict";
 import {planFacing,estimateFacing,reviewOnlyListing} from "./engine.mjs";
-import {inferFacingTool,MATERIALS} from "./tool-inference.mjs";
+import {inferFacingTool,MATERIALS,resolveMaterial} from "./tool-inference.mjs";
 import {MACHINE_PROFILES, machineById,estimateProcess} from "./machines.mjs";
 const base={
  width_mm:86,height_mm:56,facing_allowance_mm:1,origin:"front-left",
@@ -74,6 +75,47 @@ test("inference changes with material; never pretends to know a real machine",()
  assert.notEqual(a.suggested.rpm,b.suggested.rpm);
  assert.ok(b.limitations.some(w=>w.includes("BEAN")));
  assert.throws(()=>inferFacingTool({material:"unlisted"}));
+});
+test("common HR, HRPO/P&O, CRS, 5052 and 6061 names map to the intended material",()=>{
+ const cases=[
+  ["6061","aluminum-6061"],["6061 aluminum","aluminum-6061"],
+  ["5052","aluminum-5052"],["5052 aluminum","aluminum-5052"],
+  ["hot rolled","steel-hot-rolled"],["HR","steel-hot-rolled"],
+  ["P&O","steel-hrpo"],["HRPO","steel-hrpo"],["P&O/HRPO","steel-hrpo"],
+  ["pickled & oiled","steel-hrpo"],["CRS","steel-crs"],["cold rolled steel","steel-crs"],
+  ["304 stainless","stainless-304"],["SS304","stainless-304"],
+  ["1018","steel-1018"]
+ ];
+ assert.equal(Object.keys(MATERIALS).length,8);
+ for(const [name,id] of cases){
+  assert.equal(resolveMaterial(name),id,name);
+  assert.equal(inferFacingTool({material:name}).basis.material_id,id,name);
+ }
+ assert.throws(()=>resolveMaterial("A36"),/Unknown generic material/);
+ assert.throws(()=>resolveMaterial(""),/Unknown generic material/);
+ assert.throws(()=>resolveMaterial(null),/Unknown generic material/);
+});
+test("generic rolled-steel process names never invent an alloy grade",()=>{
+ const mild=inferFacingTool({material:"1018"});
+ for(const material of ["HR","HRPO","P&O","CRS"]){
+  const x=inferFacingTool({material,machine_max_rpm:12000});
+  assert.equal(x.basis.grade_unspecified,true);
+  assert.equal(x.basis.assumed_cutting_speed_m_min,mild.basis.assumed_cutting_speed_m_min);
+  assert.equal(x.basis.assumed_chip_load_mm_tooth,mild.basis.assumed_chip_load_mm_tooth);
+  assert.ok(x.reasons.some(reason=>/grade|processing|surface/i.test(reason)));
+ }
+ assert.equal(inferFacingTool({material:"6061"}).basis.grade_unspecified,false);
+ const aluminum6061=inferFacingTool({material:"6061"});
+ const aluminum5052=inferFacingTool({material:"5052"});
+ assert.notEqual(aluminum6061.suggested.rpm,aluminum5052.suggested.rpm);
+ assert.notEqual(aluminum6061.suggested.feed_mm_min,aluminum5052.suggested.feed_mm_min);
+ assert.equal(aluminum5052.basis.material_id,"aluminum-5052");
+});
+test("browser material selector exposes every inference material profile",()=>{
+ const html=readFileSync(new URL("./index.html",import.meta.url),"utf8");
+ for(const id of Object.keys(MATERIALS))
+  assert.ok(html.includes('value="'+id+'"'),"Missing browser material option: "+id);
+ assert.match(html,/HRPO \/ P&amp;O/);
 });
 test("laser estimate responds to cut distance, piercing time and quantity",()=>{
  const b={...quote,cut_length_mm:1500,cut_speed_mm_min:1000,pierce_count:4,pierce_seconds:3};
