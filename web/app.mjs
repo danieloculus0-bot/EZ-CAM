@@ -1,4 +1,5 @@
 import {planFacing,estimateFacing,reviewOnlyListing} from "./engine.mjs";
+import {UNIT_FIELDS,UNIT_LABELS,toMm,fromMm,convertDisplay,displayNumber} from "./units.mjs";
 import {inferFacingTool} from "./tool-inference.mjs";
 import {machineById,MACHINE_FAMILIES,estimateProcess} from "./machines.mjs";
 const $=id=>document.getElementById(id);
@@ -6,6 +7,32 @@ const val=id=>Number($(id).value);
 const fmt=(n,d=2)=>Number(n).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d});
 const money=n=>Number(n).toLocaleString("en-US",{style:"currency",currency:"USD"});
 let activePlan=null,activeEstimate=null,activeInference=null,anim=null;
+let currentUnits="mm"; // HTML starts from canonical-mm examples.
+const metric=id=>toMm(val(id),currentUnits);
+const shown=(mm,d=4)=>displayNumber(mm,currentUnits,d);
+const suffix=()=>currentUnits==="in"?"in":"mm";
+function chooseUnits(next){
+ if(next!=="in"&&next!=="mm"||next===currentUnits)return;
+ for(const id of Object.keys(UNIT_FIELDS)){
+  const input=$(id);
+  for(const attr of ["value","min","max","step"]){
+   const raw=attr==="value"?input.value:input.getAttribute(attr);
+   if(raw!==null&&raw!==""&&Number.isFinite(Number(raw))){
+    const converted=convertDisplay(raw,currentUnits,next);
+    if(attr==="value")input.value=String(converted);
+    else input.setAttribute(attr,String(converted));
+   }
+  }
+  const label=document.querySelector('[data-unit-for="'+id+'"]');
+  if(label)label.textContent="("+UNIT_LABELS[UNIT_FIELDS[id]][next]+")";
+ }
+ currentUnits=next;$("units").value=next;
+ try{localStorage.setItem("ezcam.display_units.v1",next);}catch{}
+ activeInference=null;
+ $("suggestion").textContent="Units changed. Re-run cutter inference to refresh suggestions.";
+ clearResults();
+ explain("Units set to "+(next==="in"?"inches":"millimeters")+". Dimensions converted; rebuild the estimate.");
+}
 const canvas=$("preview"),ctx=canvas.getContext("2d");
 function selected(){return machineById($("machine").value);}
 function explain(message,error=false){$("result").textContent=message;$("result").classList.toggle("error",error);}
@@ -31,18 +58,18 @@ function familyChange(){
 }
 function infer(){
  try{
-  const inf=inferFacingTool({width_mm:val("width"),height_mm:val("height"),material:$("material").value,machine_max_rpm:val("maxrpm")});
+  const inf=inferFacingTool({width_mm:metric("width"),height_mm:metric("height"),material:$("material").value,machine_max_rpm:val("maxrpm")});
   const s=inf.suggested;activeInference=inf;
-  $("diameter").value=s.diameter_mm;$("rpm").value=s.rpm;
+  $("diameter").value=fromMm(s.diameter_mm,currentUnits);$("rpm").value=s.rpm;
   $("stepover").value=Number((s.stepover_ratio*100).toFixed(2));
-  $("stepdown").value=s.stepdown_mm;$("feed").value=s.feed_mm_min;
-  $("plunge").value=s.plunge_mm_min;$("clearance").value=s.clearance_mm;
-  $("rapid").value=s.rapid_mm_min;
+  $("stepdown").value=fromMm(s.stepdown_mm,currentUnits);$("feed").value=fromMm(s.feed_mm_min,currentUnits);
+  $("plunge").value=fromMm(s.plunge_mm_min,currentUnits);$("clearance").value=fromMm(s.clearance_mm,currentUnits);
+  $("rapid").value=fromMm(s.rapid_mm_min,currentUnits);
   $("suggestion").textContent=
    "INFERENCE · "+s.cutter+"\n"+
    inf.basis.material+"\n"+
-   "Ø"+s.diameter_mm+" mm · "+fmt(s.rpm,0)+" RPM · XY "+fmt(s.feed_mm_min,0)+" mm/min · plunge "+fmt(s.plunge_mm_min,0)+" mm/min · "+s.flutes+" flutes\n"+
-   "Vc assumption "+inf.basis.assumed_cutting_speed_m_min+" m/min; chip-load assumption "+inf.basis.assumed_chip_load_mm_tooth+" mm/tooth. "+
+   "Ø"+shown(s.diameter_mm)+" "+suffix()+" · "+fmt(s.rpm,0)+" RPM · XY "+shown(s.feed_mm_min,2)+" "+suffix()+"/min · plunge "+shown(s.plunge_mm_min,2)+" "+suffix()+"/min · "+s.flutes+" flutes\n"+
+   "Vc assumption "+(currentUnits==="in"?fmt(inf.basis.assumed_cutting_speed_m_min/0.3048,1)+" ft/min":inf.basis.assumed_cutting_speed_m_min+" m/min")+"; chip-load assumption "+shown(inf.basis.assumed_chip_load_mm_tooth,5)+" "+suffix()+"/tooth. "+
    (inf.basis.grade_unspecified?"PROCESS LABEL ONLY: material grade unknown; 1018-like mild steel assumed. ":"")+
    "Rule-based estimate, not live BEAN or machine-verified.";
   clearResults();explain("Suggested inputs populated. Change any field, then BUILD ESTIMATE. All inferred values require machinist review.");
@@ -56,10 +83,10 @@ function build(){
  try{
   const m=selected(),q=commonInputs();
   if(m.family==="mill"){
-   const params={width_mm:val("width"),height_mm:val("height"),facing_allowance_mm:val("allowance"),
-     origin:$("origin").value,diameter_mm:val("diameter"),stepover_ratio:val("stepover")/100,
-     stepdown_mm:val("stepdown"),feed_mm_min:val("feed"),plunge_mm_min:val("plunge"),
-     clearance_mm:val("clearance"),rapid_mm_min:val("rapid")};
+   const params={width_mm:metric("width"),height_mm:metric("height"),facing_allowance_mm:metric("allowance"),
+     origin:$("origin").value,diameter_mm:metric("diameter"),stepover_ratio:val("stepover")/100,
+     stepdown_mm:metric("stepdown"),feed_mm_min:metric("feed"),plunge_mm_min:metric("plunge"),
+     clearance_mm:metric("clearance"),rapid_mm_min:metric("rapid")};
    activePlan=planFacing(params);
    activeEstimate=estimateFacing(activePlan,q);
    activeEstimate.machine={brand:m.brand,family:m.family,model:null,controller:null,capacity_verified:false};
@@ -68,11 +95,11 @@ function build(){
    activeEstimate.warnings.push("Public demo has NO imported CAD, stock-removal simulation or CNC-qualified toolpath.");
    $("listing").disabled=false;
    explain("FACING ONLY · "+activePlan.passes+" Z level(s) · "+activePlan.rows_per_pass+" rows/level · "+activePlan.moves.length+" path moves. "+
-      "Feed path "+fmt(activePlan.metrics.feed_length_mm,0)+" mm. These are idealized motion-time and cost calculations.");
+      "Feed path "+shown(activePlan.metrics.feed_length_mm,2)+" "+suffix()+". These are idealized motion-time and cost calculations.");
   }else if(m.family==="laser"){
    activePlan=null;
    activeEstimate=estimateProcess(m.id,{...q,
-    cut_length_mm:val("cutlength"),cut_speed_mm_min:val("cutspeed"),pierce_count:val("pierces"),pierce_seconds:val("piercetime")});
+    cut_length_mm:metric("cutlength"),cut_speed_mm_min:metric("cutspeed"),pierce_count:val("pierces"),pierce_seconds:val("piercetime")});
    $("listing").disabled=true;
    explain("LASER ESTIMATE ONLY · Time = entered cut length / assumed cut speed + pierce allowance. "+
       "Not a nesting result, verified cutting recipe, or laser machine program.");
@@ -84,6 +111,8 @@ function build(){
    explain("PRESS BRAKE ESTIMATE ONLY · Time = entered bends × assumed seconds per bend + handling. "+
       "Not a bend sequence, tonnage or tooling validation.");
   }
+  activeEstimate.display_units=currentUnits;
+  activeEstimate.canonical_units="mm";
   $("motion").textContent=fmt(activeEstimate.metrics.estimated_motion_min_per_part)+" min";
   $("cost").textContent=money(activeEstimate.quote_basis.estimated_operation_total);
   $("unitcost").textContent=money(activeEstimate.quote_basis.estimated_operation_per_part);
@@ -103,7 +132,7 @@ function exportEstimate(){
 }
 function exportListing(){
  if(!activePlan||!activeEstimate)return;
- download("ezcam-facing-REVIEW-ONLY.txt",reviewOnlyListing(activePlan),"text/plain");
+ download("ezcam-facing-REVIEW-ONLY.txt",reviewOnlyListing(activePlan,{units:currentUnits}),"text/plain");
 }
 function replay(){
  if(!activePlan)return;
@@ -132,11 +161,11 @@ function draw(){
   ctx.fillText("Only bounded user-assumption cycle-time calculations.",w/2,h/2+40);
   ctx.textAlign="left";return;
  }
- const sw=Number($("width").value),sh=Number($("height").value);
+ const sw=metric("width"),sh=metric("height");
  if(!Number.isFinite(sw)||!Number.isFinite(sh)||sw<=0||sh<=0){
   ctx.fillText("Enter valid stock dimensions to preview.",20,30);return;
  }
- const d=Math.max(1,Number($("diameter").value)||10),pad=Math.max(d,6);
+ const d=Math.max(1,metric("diameter")||10),pad=Math.max(d,6);
  const scale=Math.min((w-160)/(sw+2*pad),(h-160)/(sh+2*pad));
  if(scale<=0)return;
  const left=(w-sw*scale)/2,bot=(h+sh*scale)/2;
@@ -167,15 +196,16 @@ function draw(){
    const [a,b]=xy(last.x,last.y),r=d*scale/2;
    ctx.beginPath();ctx.arc(a,b,Math.max(2,r),0,2*Math.PI);
    ctx.strokeStyle="#eee1b3";ctx.lineWidth=3;ctx.stroke();
-   ctx.textAlign="right";ctx.fillStyle="#dedede";ctx.fillText("TOOL Z "+fmt(last.z)+" mm",w-22,h-20);
+   ctx.textAlign="right";ctx.fillStyle="#dedede";ctx.fillText("TOOL Z "+shown(last.z)+" "+suffix(),w-22,h-20);
    ctx.textAlign="left";
   }
  }
  ctx.fillStyle="#c7c7c7";ctx.font="14px Segoe UI,Arial";
- ctx.fillText("SYNTHETIC STOCK · "+fmt(sw,0)+" × "+fmt(sh,0)+" mm",20,29);
+ ctx.fillText("SYNTHETIC STOCK · "+shown(sw,3)+" × "+shown(sh,3)+" "+suffix(),20,29);
  ctx.fillText("Top view; NOT swept-stock removal or collision simulation",20,h-20);
 }
 $("machine").addEventListener("change",familyChange);
+$("units").addEventListener("change",()=>chooseUnits($("units").value));
 $("infer").addEventListener("click",infer);
 $("calculate").addEventListener("click",build);
 $("export").addEventListener("click",exportEstimate);
@@ -183,7 +213,7 @@ $("listing").addEventListener("click",exportListing);
 $("progress").addEventListener("input",()=>{if(anim!==null){cancelAnimationFrame(anim);anim=null;}draw();});
 $("replay").addEventListener("click",replay);
 document.querySelectorAll(".sidebar input,.sidebar select").forEach(el=>{
- if(el.id==="machine")return;
+ if(el.id==="machine"||el.id==="units")return;
  el.addEventListener("change",()=>{
    if(!["infer","calculate"].includes(el.id)){
      const was=Boolean(activeEstimate);
@@ -192,4 +222,7 @@ document.querySelectorAll(".sidebar input,.sidebar select").forEach(el=>{
    }
  });
 });
+let initialUnits="in";
+try{if(localStorage.getItem("ezcam.display_units.v1")==="mm")initialUnits="mm";}catch{}
+chooseUnits(initialUnits);
 familyChange();
