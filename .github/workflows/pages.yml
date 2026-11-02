@@ -38,8 +38,10 @@ jobs:
           node --check web/tool-inference.mjs
           node --check web/machines.mjs
           node --check web/engine.test.mjs
+          node --check web/units.mjs
+          node --check web/units.test.mjs
       - name: Run deterministic synthetic machining and costing tests
-        run: node --test web/engine.test.mjs
+        run: node --test web/engine.test.mjs web/units.test.mjs
       - name: Validate deployment and confidentiality boundary
         run: |
           test -s web/index.html
