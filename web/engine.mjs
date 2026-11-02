@@ -110,19 +110,23 @@ export function estimateFacing(plan, inputs={}) {
   };
 }
 const fmt=n=>(Math.abs(n)<0.0005?0:n).toFixed(3);
-export function reviewOnlyListing(plan) {
+export function reviewOnlyListing(plan,{units="mm"}={}) {
+  if(units!=="mm"&&units!=="in")throw Error("Unknown review listing unit");
+  const factor=units==="in"?1/25.4:1;
   if(plan?.schema!=="ezcam.browser_facing.v1" || plan.machine_verified!==false) throw Error("Unverified browser plan required");
+  const number=n=>(Math.abs(n*factor)<0.00000005?0:n*factor).toFixed(units==="in"?5:3);
   const dx=plan.setup.origin==="center"?-plan.setup.width_mm/2:0;
   const dy=plan.setup.origin==="center"?-plan.setup.height_mm/2:0;
   return [
     "(EZ CAM BROWSER - FICTIONAL FACING - REVIEW ONLY)",
     "(NOT FOR MACHINE EXECUTION - NO VERIFIED POSTPROCESSOR)",
     "(NO MACHINE / FIXTURE / COLLISION VALIDATION)",
+    "(LISTING COORDINATES AND FEEDS IN "+(units==="in"?"INCHES":"MILLIMETERS")+")",
     "(G54 Z0 IS RAW STOCK TOP)",
-    "G21 G17 G90 G94 G40 G49 G80","G54",
+    (units==="in"?"G20":"G21")+" G17 G90 G94 G40 G49 G80","G54",
     ...plan.moves.map(m=>(m.mode==="rapid"?"G0":"G1")+
-      " X"+fmt(m.x+dx)+" Y"+fmt(m.y+dy)+" Z"+fmt(m.z)+
-      (m.feed!==null?" F"+fmt(m.feed):"")),
+      " X"+number(m.x+dx)+" Y"+number(m.y+dy)+" Z"+number(m.z)+
+      (m.feed!==null?" F"+number(m.feed):"")),
     "(REVIEW ENDS - NOT FOR MACHINE EXECUTION)","M30",""
   ].join("\n");
 }
