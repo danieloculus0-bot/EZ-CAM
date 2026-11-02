@@ -26,12 +26,14 @@
       <section class="panel"><h2><span>01</span> MACHINE FAMILY</h2>
         <label>Generic manufacturer profile<select id="machine"><option value="hurco">Hurco · 3-axis mill</option><option value="fadal">Fadal · 3-axis mill</option><option value="doosan">Doosan · 3-axis mill</option><option value="hk">HK · sheet laser</option><option value="trumpf">TRUMPF · sheet laser</option><option value="bystronic">Bystronic · press brake</option><option value="accurpress">Accurpress · press brake</option></select></label>
         <p class="fine" id="machine-note">Generic brand selection only. No model, controller or real capacity is configured.</p>
+        <label>Measurement units<select id="units" aria-label="Measurement units"><option value="in" selected>Inches (in)</option><option value="mm">Millimeters (mm)</option></select></label>
+        <p class="fine">Inches default. Conversion is display and input only; math remains in canonical mm.</p>
       </section>
       <section class="panel" id="mill-fields"><h2><span>02</span> STOCK + DATUM</h2>
         <div class="fields two">
-          <label>Stock X (mm)<input id="width" type="number" min=".1" max="10000" step="1" value="86"></label>
-          <label>Stock Y (mm)<input id="height" type="number" min=".1" max="10000" step="1" value="56"></label>
-          <label>Top to remove (mm)<input id="allowance" type="number" min=".01" max="250" step=".1" value="1"></label>
+          <label>Stock X <span class="unit-label" data-unit-for="width">in</span><input id="width" type="number" min=".1" max="10000" step="1" value="86"></label>
+          <label>Stock Y <span class="unit-label" data-unit-for="height">in</span><input id="height" type="number" min=".1" max="10000" step="1" value="56"></label>
+          <label>Top to remove <span class="unit-label" data-unit-for="allowance">in</span><input id="allowance" type="number" min=".01" max="250" step=".1" value="1"></label>
           <label>G54 XY origin<select id="origin"><option value="front-left">Front-left</option><option value="center">Stock center</option></select></label>
         </div>
         <p class="fine">G54 Z0 is raw-stock top. Browser demo uses fictional stock only.</p>
@@ -42,21 +44,21 @@
         <button id="infer" class="secondary" type="button">Suggest cutter, RPM and feeds</button>
         <div id="suggestion" class="suggestion" aria-live="polite">Choose a generic material and infer a starting estimate. Nothing is machine-verified.</div>
         <div class="fields two">
-          <label>Cutter diameter (mm)<input id="diameter" type="number" min=".01" max="250" step=".5" value="16"></label>
+          <label>Cutter diameter <span class="unit-label" data-unit-for="diameter">in</span><input id="diameter" type="number" min=".01" max="250" step=".5" value="16"></label>
           <label>Spindle RPM (reference)<input id="rpm" type="number" min="1" max="40000" step="1" value="4000"></label>
           <label>Stepover (%)<input id="stepover" type="number" min=".1" max="80" step="1" value="58"></label>
-          <label>Stepdown (mm)<input id="stepdown" type="number" min=".01" max="100" step=".1" value=".8"></label>
-          <label>XY feed (mm/min)<input id="feed" type="number" min="1" max="100000" step="10" value="540"></label>
-          <label>Plunge (mm/min)<input id="plunge" type="number" min="1" max="100000" step="10" value="120"></label>
-          <label>Clearance (mm)<input id="clearance" type="number" min=".01" max="10000" step=".5" value="5"></label>
-          <label>Assumed rapid (mm/min)<input id="rapid" type="number" min="1" max="100000" step="100" value="3000"></label>
+          <label>Stepdown <span class="unit-label" data-unit-for="stepdown">in</span><input id="stepdown" type="number" min=".01" max="100" step=".1" value=".8"></label>
+          <label>XY feed <span class="unit-label" data-unit-for="feed">in/min</span><input id="feed" type="number" min="1" max="100000" step="10" value="540"></label>
+          <label>Plunge <span class="unit-label" data-unit-for="plunge">in/min</span><input id="plunge" type="number" min="1" max="100000" step="10" value="120"></label>
+          <label>Clearance <span class="unit-label" data-unit-for="clearance">in</span><input id="clearance" type="number" min=".01" max="10000" step=".5" value="5"></label>
+          <label>Assumed rapid <span class="unit-label" data-unit-for="rapid">in/min</span><input id="rapid" type="number" min="1" max="100000" step="100" value="3000"></label>
         </div>
       </section>
       <section class="panel" id="laser-fields" hidden><h2><span>02</span> LASER TIME INPUTS</h2>
         <p class="fine">User-entered assumptions; there is no nesting, laser program, or speed database.</p>
         <div class="fields two">
-          <label>Cut length (mm)<input id="cutlength" type="number" min="0" max="10000000" value="2200"></label>
-          <label>Assumed cut speed (mm/min)<input id="cutspeed" type="number" min=".01" max="500000" value="2500"></label>
+          <label>Cut length <span class="unit-label" data-unit-for="cutlength">in</span><input id="cutlength" type="number" min="0" max="10000000" value="2200"></label>
+          <label>Assumed cut speed <span class="unit-label" data-unit-for="cutspeed">in/min</span><input id="cutspeed" type="number" min=".01" max="500000" value="2500"></label>
           <label>Pierce count<input id="pierces" type="number" min="0" max="100000" step="1" value="6"></label>
           <label>Seconds per pierce<input id="piercetime" type="number" min="0" max="300" value="1.5"></label>
         </div>
