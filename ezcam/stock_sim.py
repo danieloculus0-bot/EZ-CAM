@@ -62,7 +62,7 @@ def simulate_facing(plan: Plan, cell_mm: float = 1.0,
     warnings: list[str] = []
     for previous, current in zip(plan.moves, plan.moves[1:]):
         if current.mode == "rapid":
-            if current.z < 0 or previous.z < 0:
+            if current.z < 0 or (previous.z < 0 and (current.x != previous.x or current.y != previous.y)):
                 warnings.append("Rapid traverses at or below stock top; inspect setup")
             continue
         depth = min(0.0, previous.z, current.z)
