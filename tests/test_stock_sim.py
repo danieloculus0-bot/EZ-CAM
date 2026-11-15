@@ -55,7 +55,7 @@ class StockSimulationTests(unittest.TestCase):
 
         # A legal partial pass still must report unmachined stock independently.
         legal_moves = tuple(
-            Move(move.mode, move.x, move.y, max(move.z, -1), move.feed_mm_min)
+            Move(move.mode, move.x, move.y, max(move.z, -1), move.feed)
             for move in moves
         )
         result = simulate_facing(Plan(setup, tool, legal_moves, 1), 1)
