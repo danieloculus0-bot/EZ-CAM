@@ -40,6 +40,21 @@ class StockSimulationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             simulate_facing(plan, 0.01, max_cells=100)
 
+    def test_overcut_does_not_hide_unmachined_stock(self):
+        setup = Setup(10, 10, 1)
+        tool = Tool(diameter_mm=2)
+        moves = (
+            Move("rapid", 1, 1, 5),
+            Move("feed", 1, 1, -2, 100),
+            Move("feed", 3, 1, -2, 100),
+            Move("rapid", 3, 1, 5),
+        )
+        result = simulate_facing(Plan(setup, tool, moves, 1), 1)
+        self.assertGreater(result.removed_mm3, 0)
+        self.assertGreater(result.remaining_mm3, 0)
+        self.assertLess(result.target_coverage, 1)
+        self.assertTrue(any("exceeds" in w for w in result.warnings))
+
     def test_detects_unsafe_lateral_rapid(self):
         setup = Setup(10, 10, 1)
         tool = Tool(diameter_mm=4)
