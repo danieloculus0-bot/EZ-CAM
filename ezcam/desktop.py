@@ -13,6 +13,8 @@ from tkinter import ttk, filedialog, messagebox
 from .cad import Part, inspect_step
 from .core import Setup, Tool, Plan, plan_facing
 from .post import review_gcode, export_plan_json
+from .stock_sim import simulate_facing
+from .preview import render_svg
 
 BG, PANEL, CANVAS_BG = "#000000", "#0b0b0b", "#050505"
 TEXT, MUTED, LIME, TEAL = "#eeeeee", "#acacac", "#a6ca8d", "#a0aebd"
@@ -99,6 +101,7 @@ class Desktop:
         self._heading(side, "04  PATH")
         self._button(side, "BUILD FACING PATH", self.build, strong=True)
         self._button(side, "Export preview JSON", self.export_json)
+        self._button(side, "Export sampled stock SVG", self.export_stock_svg)
         self._button(side, "Export review-only G-code TXT", self.export_review)
 
         right = tk.Frame(body, bg=CANVAS_BG)
@@ -220,6 +223,30 @@ class Desktop:
 
     def export_json(self):
         self._export("ezcam_plan_preview.json", export_plan_json)
+
+    def export_stock_svg(self):
+        """Export sampled cutter-sweep stock height field from the current path."""
+        if self.plan is None:
+            messagebox.showwarning("No path", "Build a toolpath first")
+            return
+        try:
+            self._verify_source()
+            preview = simulate_facing(self.plan, cell_mm=1.0)
+            setup = self.plan.setup
+            svg = render_svg(preview, setup.width_mm, setup.height_mm,
+                             setup.facing_allowance_mm)
+            dest = filedialog.asksaveasfilename(
+                title="Export sampled stock visualization",
+                initialfile="ezcam_sampled_stock.svg",
+                defaultextension=".svg",
+                filetypes=[("SVG image", "*.svg")])
+            if dest:
+                Path(dest).write_text(svg, encoding="utf-8")
+                self.status.set(
+                    f"Sampled stock SVG saved: {Path(dest).name}; "
+                    f"coverage {preview.target_coverage:.1%}; not collision verified")
+        except (OSError, ValueError, RuntimeError) as exc:
+            messagebox.showerror("Stock preview failed", str(exc))
 
     def export_review(self):
         self._export("ezcam_gcode_REVIEW_ONLY.txt", review_gcode)
