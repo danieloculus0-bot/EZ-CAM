@@ -83,15 +83,16 @@ def simulate_facing(plan: Plan, cell_mm: float = 1.0,
     target = plan.setup.facing_allowance_mm
     removed = 0.0
     covered_area = 0.0
+    remaining = 0.0
     total_area = width * height
     for j, row in enumerate(heights):
         for i, z in enumerate(row):
             area = xw[i] * yw[j]
             removed += -z * area
+            remaining += max(0.0, target + z) * area
             if z <= -target + 1e-7:
                 covered_area += area
     target_volume = total_area * target
-    remaining = max(0.0, target_volume - removed)
     coverage = min(1.0, covered_area / total_area)
     if coverage < 1.0 - 1e-8:
         warnings.append("Sampled stock contains areas above the requested facing depth")
