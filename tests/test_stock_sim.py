@@ -49,11 +49,20 @@ class StockSimulationTests(unittest.TestCase):
             Move("feed", 3, 1, -2, 100),
             Move("rapid", 3, 1, 5),
         )
-        result = simulate_facing(Plan(setup, tool, moves, 1), 1)
+        # Plan validation must reject an overcut before simulation.
+        with self.assertRaisesRegex(ValueError, "below the requested facing depth"):
+            Plan(setup, tool, moves, 1)
+
+        # A legal partial pass still must report unmachined stock independently.
+        legal_moves = tuple(
+            Move(move.mode, move.x, move.y, max(move.z, -1), move.feed_mm_min)
+            for move in moves
+        )
+        result = simulate_facing(Plan(setup, tool, legal_moves, 1), 1)
         self.assertGreater(result.removed_mm3, 0)
         self.assertGreater(result.remaining_mm3, 0)
         self.assertLess(result.target_coverage, 1)
-        self.assertTrue(any("exceeds" in w for w in result.warnings))
+        self.assertTrue(any("above the requested" in w for w in result.warnings))
 
     def test_detects_unsafe_lateral_rapid(self):
         setup = Setup(10, 10, 1)
