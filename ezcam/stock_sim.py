@@ -21,6 +21,8 @@ class StockPreview:
     remaining_mm3: float
     target_mm3: float
     target_coverage: float
+    uncut_cells: int
+    uncut_bounds_mm: tuple[float, float, float, float] | None
     minimum_height_mm: float
     maximum_height_mm: float
     warnings: tuple[str, ...]
@@ -83,6 +85,8 @@ def simulate_facing(plan: Plan, cell_mm: float = 1.0,
     target = plan.setup.facing_allowance_mm
     removed = 0.0
     covered_area = 0.0
+    uncut_cells = 0
+    uncut_bounds: list[float] | None = None
     remaining = 0.0
     total_area = width * height
     for j, row in enumerate(heights):
@@ -92,6 +96,17 @@ def simulate_facing(plan: Plan, cell_mm: float = 1.0,
             remaining += max(0.0, target + z) * area
             if z <= -target + 1e-7:
                 covered_area += area
+            else:
+                uncut_cells += 1
+                x0, y0 = i * cell_mm, j * cell_mm
+                x1, y1 = min(width, x0 + cell_mm), min(height, y0 + cell_mm)
+                if uncut_bounds is None:
+                    uncut_bounds = [x0, y0, x1, y1]
+                else:
+                    uncut_bounds = [min(uncut_bounds[0], x0),
+                                    min(uncut_bounds[1], y0),
+                                    max(uncut_bounds[2], x1),
+                                    max(uncut_bounds[3], y1)]
     target_volume = total_area * target
     coverage = min(1.0, covered_area / total_area)
     if coverage < 1.0 - 1e-8:
@@ -100,5 +115,6 @@ def simulate_facing(plan: Plan, cell_mm: float = 1.0,
         warnings.append("Sampled tool sweep exceeds requested facing depth")
     return StockPreview(cell_mm, nx, ny, tuple(tuple(r) for r in heights),
                         removed, remaining, target_volume, coverage,
+                        uncut_cells, tuple(uncut_bounds) if uncut_bounds is not None else None,
                         min(min(r) for r in heights), max(max(r) for r in heights),
                         tuple(dict.fromkeys(warnings)))
