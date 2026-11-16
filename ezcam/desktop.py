@@ -244,7 +244,10 @@ class Desktop:
                 Path(dest).write_text(svg, encoding="utf-8")
                 self.status.set(
                     f"Sampled stock SVG saved: {Path(dest).name}; "
-                    f"coverage {preview.target_coverage:.1%}; not collision verified")
+                    f"coverage {preview.target_coverage:.1%}; "
+                    f"uncut cells {preview.uncut_cells}; "
+                    f"uncut XY bounds (mm) {preview.uncut_bounds_mm or 'none'}; "
+                    "not collision verified")
         except (OSError, ValueError, RuntimeError) as exc:
             messagebox.showerror("Stock preview failed", str(exc))
 
