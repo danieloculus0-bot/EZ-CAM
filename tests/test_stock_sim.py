@@ -16,6 +16,8 @@ class StockSimulationTests(unittest.TestCase):
         self.assertAlmostEqual(result.remaining_mm3, 0)
         self.assertAlmostEqual(result.target_coverage, 1)
         self.assertEqual(result.warnings, ())
+        self.assertEqual(result.uncut_cells, 0)
+        self.assertIsNone(result.uncut_bounds_mm)
 
     def test_unmachined_stock_is_reported(self):
         setup = Setup(20, 20, 1)
@@ -30,6 +32,8 @@ class StockSimulationTests(unittest.TestCase):
         self.assertEqual(result.target_coverage, 0)
         self.assertEqual(result.removed_mm3, 0)
         self.assertEqual(result.remaining_mm3, 400)
+        self.assertEqual(result.uncut_cells, 400)
+        self.assertEqual(result.uncut_bounds_mm, (0.0, 0.0, 20.0, 20.0))
         self.assertTrue(result.warnings)
 
     def test_edge_cell_areas_and_grid_limit(self):
@@ -63,6 +67,8 @@ class StockSimulationTests(unittest.TestCase):
         self.assertGreater(result.remaining_mm3, 0)
         self.assertLess(result.target_coverage, 1)
         self.assertTrue(any("above the requested" in w for w in result.warnings))
+        self.assertGreater(result.uncut_cells, 0)
+        self.assertIsNotNone(result.uncut_bounds_mm)
 
     def test_detects_unsafe_lateral_rapid(self):
         setup = Setup(10, 10, 1)
