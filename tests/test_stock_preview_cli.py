@@ -1,12 +1,13 @@
 """Synthetic end-to-end regression for the offline stock preview interface."""
 import contextlib
+import csv
 import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
 
-from ezcam.stock_preview_cli import evaluate, main
+from ezcam.stock_preview_cli import evaluate, heightmap_csv, main
 
 
 class StockPreviewCLITests(unittest.TestCase):
@@ -37,6 +38,24 @@ class StockPreviewCLITests(unittest.TestCase):
             self.assertEqual(data["simulation"]["columns"], 30)
             self.assertEqual(data["simulation"]["rows"], 20)
             self.assertEqual(len(data["simulation"]["heights_mm"]), 20)
+
+    def test_heightmap_csv_end_to_end(self):
+        with tempfile.TemporaryDirectory() as folder:
+            src = Path(folder) / "input.json"
+            dst = Path(folder) / "result.json"
+            heightmap = Path(folder) / "surface.csv"
+            src.write_text(json.dumps(self.payload), encoding="utf-8")
+            self.assertEqual(main([str(src), "-o", str(dst), "--heightmap-csv", str(heightmap)]), 0)
+            result = json.loads(dst.read_text(encoding="utf-8"))
+            with heightmap.open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.reader(handle))
+            self.assertEqual(len(rows), result["simulation"]["rows"] + 1)
+            self.assertEqual(len(rows[0]), result["simulation"]["columns"])
+            self.assertEqual([[float(value) for value in row] for row in rows[1:]], result["simulation"]["heights_mm"])
+
+    def test_heightmap_csv_rejects_inconsistent_grid(self):
+        with self.assertRaisesRegex(ValueError, "dimensions"):
+            heightmap_csv({"simulation": {"rows": 2, "columns": 2, "heights_mm": [[1, 2]]}})
 
     def test_invalid_grid_rejected_without_output(self):
         with tempfile.TemporaryDirectory() as folder:
