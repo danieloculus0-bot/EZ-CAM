@@ -8,6 +8,8 @@ No controller programs are generated.
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import sys
 from dataclasses import asdict
@@ -42,10 +44,25 @@ def evaluate(payload: dict) -> dict:
     }
 
 
+def heightmap_csv(result: dict) -> str:
+    """Export sampled surface heights as a rectangular, row-major CSV grid."""
+    sim = result["simulation"]
+    heights = sim["heights_mm"]
+    rows, cols = sim["rows"], sim["columns"]
+    if len(heights) != rows or any(len(row) != cols for row in heights):
+        raise ValueError("Simulation heightmap dimensions are inconsistent")
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer)
+    writer.writerow([f"column_{i}_height_mm" for i in range(cols)])
+    writer.writerows(heights)
+    return buffer.getvalue()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Offline sampled facing stock simulation")
     parser.add_argument("input", nargs="?", default="-", help="JSON file or - for stdin")
     parser.add_argument("-o", "--output", help="Write result to JSON file instead of stdout")
+    parser.add_argument("--heightmap-csv", help="Export sampled remaining-stock surface as CSV")
     args = parser.parse_args(argv)
     try:
         source = sys.stdin.read() if args.input == "-" else Path(args.input).read_text(encoding="utf-8")
@@ -55,6 +72,8 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.output).write_text(rendered, encoding="utf-8")
         else:
             sys.stdout.write(rendered)
+        if csv_data is not None:
+            Path(args.heightmap_csv).write_text(csv_data, encoding="utf-8", newline="")
     except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError) as exc:
         print(f"Stock preview failed: {exc}", file=sys.stderr)
         return 2
