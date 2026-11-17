@@ -68,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
         source = sys.stdin.read() if args.input == "-" else Path(args.input).read_text(encoding="utf-8")
         result = evaluate(json.loads(source))
         rendered = json.dumps(result, indent=2, allow_nan=False) + "\n"
+        csv_data = heightmap_csv(result) if args.heightmap_csv else None
         if args.output:
             Path(args.output).write_text(rendered, encoding="utf-8")
         else:
