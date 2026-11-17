@@ -84,6 +84,10 @@ class Plan:
             raise ValueError("Plan must begin and end above stock")
         if min(move.z for move in self.moves) < -self.setup.facing_allowance_mm - 1e-7:
             raise ValueError("Toolpath cuts below the requested facing depth")
+        # A rapid at cutting depth can traverse stock even when the first and
+        # last moves are clear. Reject unsafe imported/edited plans before export.
+        if any(move.mode == "rapid" and abs(move.z - safe) > 1e-7 for move in self.moves):
+            raise ValueError("Every rapid move must be at the clearance height")
 
 
 def plan_facing(setup: Setup, tool: Tool, source_sha256: str | None = None) -> Plan:
