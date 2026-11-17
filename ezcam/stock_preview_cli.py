@@ -17,6 +17,7 @@ from pathlib import Path
 
 from .core import Setup, Tool, plan_facing
 from .stock_sim import simulate_facing
+from .motion_trace import motion_trace_csv
 
 
 def evaluate(payload: dict) -> dict:
@@ -63,18 +64,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("input", nargs="?", default="-", help="JSON file or - for stdin")
     parser.add_argument("-o", "--output", help="Write result to JSON file instead of stdout")
     parser.add_argument("--heightmap-csv", help="Export sampled remaining-stock surface as CSV")
+    parser.add_argument("--motion-csv", help="Export per-move 3D travel and cumulative feed-time trace")
     args = parser.parse_args(argv)
     try:
         source = sys.stdin.read() if args.input == "-" else Path(args.input).read_text(encoding="utf-8")
-        result = evaluate(json.loads(source))
+        payload = json.loads(source)
+        result = evaluate(payload)
         rendered = json.dumps(result, indent=2, allow_nan=False) + "\n"
         csv_data = heightmap_csv(result) if args.heightmap_csv else None
+        trace_data = None
+        if args.motion_csv:
+            setup = Setup(**payload["stock"])
+            cutter = Tool(**payload.get("tool", {}))
+            trace_data = motion_trace_csv(plan_facing(setup, cutter))
         if args.output:
             Path(args.output).write_text(rendered, encoding="utf-8")
         else:
             sys.stdout.write(rendered)
         if csv_data is not None:
             Path(args.heightmap_csv).write_text(csv_data, encoding="utf-8", newline="")
+        if trace_data is not None:
+            Path(args.motion_csv).write_text(trace_data, encoding="utf-8", newline="")
     except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError) as exc:
         print(f"Stock preview failed: {exc}", file=sys.stderr)
         return 2
