@@ -29,15 +29,15 @@ class MotionTests(unittest.TestCase):
         self.assertEqual(result.rapid_moves, 1)
         self.assertEqual(result.feed_moves, 2)
 
-    def test_rapid_xy_at_cutting_depth_warns(self):
-        plan = Plan(Setup(20, 20, 1), Tool(), (
-            Move("rapid", 0, 0, 5),
-            Move("feed", 0, 0, -1, 100),
-            Move("rapid", 4, 0, -1),
-            Move("rapid", 4, 0, 5),
-        ), 1)
-        self.assertIn("Rapid XY travel below configured clearance",
-                      estimate_motion(plan).warnings)
+    def test_rapid_xy_at_cutting_depth_is_rejected(self):
+        # Plan rejects unsafe rapids at construction, before motion estimation.
+        with self.assertRaisesRegex(ValueError, "Every rapid move must be at the clearance height"):
+            Plan(Setup(20, 20, 1), Tool(), (
+                Move("rapid", 0, 0, 5),
+                Move("feed", 0, 0, -1, 100),
+                Move("rapid", 4, 0, -1),
+                Move("rapid", 4, 0, 5),
+            ), 1)
 
 
 if __name__ == "__main__":
