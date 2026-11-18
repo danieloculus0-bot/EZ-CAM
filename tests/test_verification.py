@@ -34,10 +34,9 @@ class FacingAcceptanceTests(unittest.TestCase):
         moves = list(self.plan.moves)
         start = moves[0]
         moves.insert(1, Move("rapid", start.x + 1, start.y, 0))
-        altered = replace(self.plan, moves=tuple(moves))
-        result = assess_facing(altered)
-        self.assertFalse(result.passed_sampled_checks)
-        self.assertTrue(any("Rapid" in finding for finding in result.findings))
+        # The Plan invariant rejects this before an acceptance report can be issued.
+        with self.assertRaisesRegex(ValueError, "Every rapid move must be at the clearance height"):
+            replace(self.plan, moves=tuple(moves))
 
     def test_json_receipt_and_invalid_threshold(self):
         receipt = json.loads(acceptance_json(self.plan))
