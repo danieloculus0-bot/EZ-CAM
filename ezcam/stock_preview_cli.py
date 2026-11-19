@@ -34,13 +34,15 @@ def evaluate(payload: dict) -> dict:
     cell_mm = payload.get("cell_mm", 1.0)
     max_cells = payload.get("max_cells", 250000)
     plan = plan_facing(setup, cutter)
-    result = simulate_facing(plan, cell_mm=cell_mm, max_cells=max_cells)
+    through_move = payload.get("through_move")
+    result = simulate_facing(plan, cell_mm=cell_mm, max_cells=max_cells, through_move=through_move)
     return {
         "operation": "facing_stock_preview",
         "units": "mm",
         "machine_verified": False,
         "passes": plan.passes,
         "move_count": len(plan.moves),
+        "simulated_through_move": len(plan.moves) - 1 if through_move is None else through_move,
         "simulation": asdict(result),
     }
 
