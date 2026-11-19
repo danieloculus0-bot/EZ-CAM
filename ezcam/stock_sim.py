@@ -39,13 +39,15 @@ def _distance_squared(px: float, py: float, ax: float, ay: float,
 
 
 def simulate_facing(plan: Plan, cell_mm: float = 1.0,
-                    max_cells: int = 250_000) -> StockPreview:
+                    max_cells: int = 250_000, through_move: int | None = None) -> StockPreview:
     """Sweep a flat cutter disk over a sampled XY height field.
 
     A feed segment removes material at its *lower endpoint* Z. This is
     conservative for a downward ramp, but is not a continuous ramp solver.
     The result is a visualization/diagnostic, never a machine safety approval.
     """
+    if through_move is not None and (type(through_move) is not int or not 0 <= through_move < len(plan.moves)):
+        raise ValueError("through_move must be an existing zero-based move index")
     positive(cell_mm, "Cell pitch")
     if not isinstance(max_cells, int) or max_cells < 1:
         raise ValueError("max_cells must be a positive integer")
@@ -62,7 +64,7 @@ def simulate_facing(plan: Plan, cell_mm: float = 1.0,
     radius = plan.tool.diameter_mm / 2
     radius2 = radius * radius
     warnings: list[str] = []
-    for previous, current in zip(plan.moves, plan.moves[1:]):
+    for previous, current in zip(plan.moves, plan.moves[1:through_move + 1] if through_move is not None else plan.moves[1:]):
         if current.mode == "rapid":
             if current.z < 0 or (previous.z < 0 and (current.x != previous.x or current.y != previous.y)):
                 warnings.append("Rapid traverses at or below stock top; inspect setup")
