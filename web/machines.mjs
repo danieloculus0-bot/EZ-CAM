@@ -4,7 +4,7 @@
 export const MACHINE_FAMILIES=Object.freeze({
   mill:{label:"3-axis mill",operation:"Facing preview",details:"Tool inference + real synthetic facing toolpath geometry. No verified machine simulation."},
   laser:{label:"Sheet laser",operation:"Cut-time estimate",details:"Manual cut-length, assumed traverse, and piercing-time estimate. No nesting or laser program."},
-  brake:{label:"Press brake",operation:"Bend-time estimate",details:"Manual number of bends, assumed stroke/handling time. No bend sequence or force validation."}
+  brake:{label:"Press brake",operation:"Section simulation + estimate",details:"Deterministic 2D bend-section simulation, sampled interference and bend-order review. No verified 3D tooling, backgauge, force, or controller program."}
 });
 export const MACHINE_PROFILES=Object.freeze([
   {id:"hurco",brand:"Hurco",family:"mill"},
