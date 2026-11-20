@@ -2,11 +2,13 @@ import {planFacing,estimateFacing,reviewOnlyListing} from "./engine.mjs";
 import {UNIT_FIELDS,UNIT_LABELS,toMm,fromMm,convertDisplay,displayNumber} from "./units.mjs";
 import {inferFacingTool} from "./tool-inference.mjs";
 import {machineById,MACHINE_FAMILIES,estimateProcess} from "./machines.mjs";
+import {buildBrakeOperation,DEFAULT_BRAKE_SECTION} from "./brake-workflow.mjs";
 const $=id=>document.getElementById(id);
 const val=id=>Number($(id).value);
 const fmt=(n,d=2)=>Number(n).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d});
 const money=n=>Number(n).toLocaleString("en-US",{style:"currency",currency:"USD"});
 let activePlan=null,activeEstimate=null,activeInference=null,anim=null;
+let activeBrakeSimulation=null,activeBrakeRanking=null,activeBrakeOptimization=false;
 let currentUnits="mm"; // HTML starts from canonical-mm examples.
 const metric=id=>toMm(val(id),currentUnits);
 const shown=(mm,d=4)=>displayNumber(mm,currentUnits,d);
@@ -38,6 +40,8 @@ function selected(){return machineById($("machine").value);}
 function explain(message,error=false){$("result").textContent=message;$("result").classList.toggle("error",error);}
 function clearResults(){
  activePlan=null;activeEstimate=null;
+ activeBrakeSimulation=null;activeBrakeRanking=null;activeBrakeOptimization=false;
+ $("brake-evidence").textContent="A bend simulation has not been generated.";
  $("export").disabled=true;$("listing").disabled=true;
  $("motion").textContent="—";$("cost").textContent="—";$("unitcost").textContent="—";
  $("progress").value=100;
@@ -49,7 +53,11 @@ function familyChange(){
  $("mill-fields").hidden=family!=="mill";
  $("laser-fields").hidden=family!=="laser";
  $("brake-fields").hidden=family!=="brake";
- $("stage-title").textContent=family==="mill"?"TOP VIEW / FACING PATH":family==="laser"?"SHEET LASER / CYCLE ESTIMATE":"PRESS BRAKE / CYCLE ESTIMATE";
+ $("stage-title").textContent=family==="mill"?"TOP VIEW / FACING PATH":family==="laser"?"SHEET LASER / CYCLE ESTIMATE":"PRESS BRAKE / SECTION SIMULATION";
+ $("calculate").textContent=family==="brake"?"SIMULATE + ESTIMATE":"BUILD ESTIMATE";
+ $("export").textContent=family==="brake"?"Download estimate + bend evidence JSON":"Download estimate JSON (future Axiom adapter)";
+ $("playbar-label").textContent=family==="brake"?"BEND PLAYBACK":"PATH PLAYBACK";
+ $("brake-frame-info").hidden=family!=="brake";
  $("stage-note").textContent=MACHINE_FAMILIES[family].details;
  $("machine-note").textContent=m.brand+" profile: generic "+MACHINE_FAMILIES[family].label.toLowerCase()+". Model, controller, capacity and available tooling are unconfigured.";
  activeInference=null;
@@ -105,11 +113,28 @@ function build(){
       "Not a nesting result, verified cutting recipe, or laser machine program.");
   }else{
    activePlan=null;
-   activeEstimate=estimateProcess(m.id,{...q,
-    bend_count:val("bends"),seconds_per_bend:val("bendtime"),handling_seconds:val("handling")});
+   const section=JSON.parse($("brake-geometry").value);
+   const run=buildBrakeOperation(m.id,section,{
+    ...q,seconds_per_bend:val("bendtime"),handling_seconds:val("handling")
+   },{optimize:activeBrakeOptimization,candidate_limit:48});
+   activeBrakeSimulation=run.simulation;
+   activeBrakeRanking=run.ranking;
+   activeEstimate=run.estimate;
+   $("bends").value=String(run.simulation.config.bends.length);
    $("listing").disabled=true;
-   explain("PRESS BRAKE ESTIMATE ONLY · Time = entered bends × assumed seconds per bend + handling. "+
-      "Not a bend sequence, tonnage or tooling validation.");
+   const checked=run.simulation.metrics.collision_frames;
+   $("brake-evidence").textContent=
+    "Sequence: "+run.simulation.config.sequence.join(" / ")+"\n"+
+    "Sampled frames: "+run.simulation.frames.length+" · Interference frames: "+checked+"\n"+
+    "Collision scope: "+run.simulation.collision_scope+"\n"+
+    (run.ranking?"Sequence candidates reviewed: "+run.ranking.candidates_tested+"\n":"")+
+    "Bend count used for estimate: "+run.simulation.config.bends.length+"\n"+
+    "Section geometry only; no actual machine, BEAN model, or controller program.";
+   explain("PRESS BRAKE SECTION SIMULATED · "+run.simulation.config.bends.length+
+    " actual section bends · "+run.simulation.frames.length+" sampled frames · "+
+    checked+" interference frames. "+(run.ranking?"Ranked "+run.ranking.candidates_tested+
+    " bend-order candidates. ":"")+"Cycle-time cost comes from the same bend count. "+
+    "This is 2D geometric review, not validated tooling or 3D machine clearance.");
   }
   activeEstimate.display_units=currentUnits;
   activeEstimate.canonical_units="mm";
@@ -135,7 +160,7 @@ function exportListing(){
  download("ezcam-facing-REVIEW-ONLY.txt",reviewOnlyListing(activePlan,{units:currentUnits}),"text/plain");
 }
 function replay(){
- if(!activePlan)return;
+ if(!activePlan&&!activeBrakeSimulation)return;
  if(anim!==null){cancelAnimationFrame(anim);anim=null;}
  const start=performance.now(),duration=3500;
  function frame(now){
@@ -145,6 +170,71 @@ function replay(){
  }
  $("progress").value=0;draw();anim=requestAnimationFrame(frame);
 }
+function drawBrake(){
+ ctx.save();
+ const sim=activeBrakeSimulation,w=canvas.width,h=canvas.height;
+ ctx.textAlign="left";
+ if(!sim){
+  ctx.font="bold 24px Segoe UI,Arial";ctx.fillStyle="#dedede";
+  ctx.fillText("PRESS BRAKE · SECTION SIMULATION",45,h/2-20);
+  ctx.font="16px Segoe UI,Arial";ctx.fillStyle="#b8b8b8";
+  ctx.fillText("Edit the section and choose SIMULATE + ESTIMATE.",45,h/2+17);
+  ctx.fillText("Or search bend sequences in the left panel.",45,h/2+46);
+  $("brake-frame-info").textContent="No bend simulation loaded.";
+  ctx.restore();return;
+ }
+ const index=Math.min(sim.frames.length-1,Math.max(0,
+  Math.round((sim.frames.length-1)*Number($("progress").value)/100)));
+ const frame=sim.frames[index],points=frame.view_vertices;
+ const obstructions=index?sim.config.obstacles:[];
+ const xx=points.map(p=>p.x),yy=points.map(p=>p.y);
+ for(const b of obstructions){xx.push(b.x_min_mm,b.x_max_mm);yy.push(b.y_min_mm,b.y_max_mm);}
+ const minX=Math.min(...xx),maxX=Math.max(...xx),minY=Math.min(...yy),maxY=Math.max(...yy);
+ const pad=Math.max(8,sim.config.thickness_mm*5);
+ const spanX=Math.max(12,maxX-minX+pad*2),spanY=Math.max(12,maxY-minY+pad*2);
+ const scale=Math.min((w-135)/spanX,(h-170)/spanY);
+ const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2;
+ const px=x=>w/2+(x-centerX)*scale,py=y=>h/2-(y-centerY)*scale;
+ ctx.lineWidth=2;
+ for(const b of obstructions){
+  const left=px(b.x_min_mm),top=py(b.y_max_mm);
+  const rw=(b.x_max_mm-b.x_min_mm)*scale,rh=(b.y_max_mm-b.y_min_mm)*scale;
+  ctx.fillStyle="rgba(201,153,83,.13)";ctx.strokeStyle="#d1a65d";
+  ctx.fillRect(left,top,rw,rh);ctx.strokeRect(left,top,rw,rh);
+ }
+ const collisionSegments=new Set();
+ for(const hit of frame.collisions){
+  if(hit.kind==="self")for(const i of hit.segments)collisionSegments.add(i);
+  if(hit.kind==="obstacle")collisionSegments.add(hit.segment);
+ }
+ for(let i=0;i<points.length-1;i++){
+  const a=points[i],b=points[i+1];
+  ctx.beginPath();ctx.moveTo(px(a.x),py(a.y));ctx.lineTo(px(b.x),py(b.y));
+  ctx.strokeStyle=collisionSegments.has(i)?"#fb8178":"#a6ca8d";
+  ctx.lineWidth=Math.max(2,Math.min(14,sim.config.thickness_mm*scale));
+  ctx.lineCap="round";ctx.stroke();
+ }
+ for(let i=1;i<points.length-1;i++){
+  ctx.beginPath();ctx.arc(px(points[i].x),py(points[i].y),4,0,2*Math.PI);
+  ctx.fillStyle="#e2e2e2";ctx.fill();
+ }
+ const hinge=sim.config.bends.findIndex(b=>b.id===frame.bend_id)+1;
+ if(hinge>0){
+  ctx.beginPath();ctx.arc(px(points[hinge].x),py(points[hinge].y),11,0,2*Math.PI);
+  ctx.strokeStyle="#e2bf7c";ctx.lineWidth=2;ctx.stroke();
+ }
+ ctx.fillStyle="#e3e3e3";ctx.font="bold 16px Segoe UI,Arial";
+ const stage=index===0?"FLAT SECTION":
+  "BEND "+frame.step+" · "+frame.bend_id+" · "+Math.round(frame.progress*100)+"%";
+ ctx.fillText(stage,25,33);
+ ctx.font="13px Segoe UI,Arial";ctx.fillStyle="#bdbdbd";
+ ctx.fillText("Frame "+index+" / "+(sim.frames.length-1)+
+  " · "+frame.collisions.length+" sampled interference(s)",25,h-22);
+ ctx.fillText("Geometry is millimeters · nominal sharp-hinge 2D section only",25,h-43);
+ $("brake-frame-info").textContent=stage+" · "+frame.collisions.length+
+  " sampled interference(s). Red indicates the flagged section segments.";
+ ctx.restore();
+}
 function draw(){
  const w=canvas.width,h=canvas.height, m=selected();
  ctx.fillStyle="#050505";ctx.fillRect(0,0,w,h);
@@ -152,6 +242,7 @@ function draw(){
  for(let x=0;x<w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
  for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
  ctx.fillStyle="#b1b1b1";ctx.font="15px Segoe UI,Arial";
+ if(m.family==="brake"){drawBrake();return;}
  if(m.family!=="mill"){
   ctx.textAlign="center";
   ctx.fillStyle="#e8e8e8";ctx.font="bold 23px Segoe UI,Arial";
@@ -207,12 +298,18 @@ function draw(){
 $("machine").addEventListener("change",familyChange);
 $("units").addEventListener("change",()=>chooseUnits($("units").value));
 $("infer").addEventListener("click",infer);
-$("calculate").addEventListener("click",build);
+$("calculate").addEventListener("click",()=>{activeBrakeOptimization=false;build();});
+$("brake-optimize").addEventListener("click",()=>{activeBrakeOptimization=true;build();});
+$("brake-reset").addEventListener("click",()=>{
+ $("brake-geometry").value=JSON.stringify(DEFAULT_BRAKE_SECTION,null,2);
+ $("bends").value=String(DEFAULT_BRAKE_SECTION.bends.length);
+ clearResults();explain("Synthetic brake section restored. Re-run simulation.");
+});
 $("export").addEventListener("click",exportEstimate);
 $("listing").addEventListener("click",exportListing);
 $("progress").addEventListener("input",()=>{if(anim!==null){cancelAnimationFrame(anim);anim=null;}draw();});
 $("replay").addEventListener("click",replay);
-document.querySelectorAll(".sidebar input,.sidebar select").forEach(el=>{
+document.querySelectorAll(".sidebar input,.sidebar select,.sidebar textarea").forEach(el=>{
  if(el.id==="machine"||el.id==="units")return;
  el.addEventListener("change",()=>{
    if(!["infer","calculate"].includes(el.id)){
@@ -222,6 +319,7 @@ document.querySelectorAll(".sidebar input,.sidebar select").forEach(el=>{
    }
  });
 });
+$("brake-geometry").value=JSON.stringify(DEFAULT_BRAKE_SECTION,null,2);
 let initialUnits="in";
 try{if(localStorage.getItem("ezcam.display_units.v1")==="mm")initialUnits="mm";}catch{}
 chooseUnits(initialUnits);
