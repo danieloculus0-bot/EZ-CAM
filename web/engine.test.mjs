@@ -160,3 +160,17 @@ test("black-neutral theme uses black surfaces in browser and desktop workbenches
    assert.ok(!css.includes("background:"+oldColor),"Old green background: "+oldColor);
  }
 });
+
+test("brake simulator has direct, persistent navigation to both Axiom and BEAN workshops",()=>{
+ const html=readFileSync(new URL("./brake-lab.html",import.meta.url),"utf8");
+ assert.match(html,/<nav class="workshop-nav" aria-label="Workshop navigation">/);
+ for(const [label,href] of [
+  ["EZ CAM Home","./"],
+  ["Axiom ERP","https://danieloculus0-bot.github.io/Axiom_Beta/erp/"],
+  ["Axiom AutoNest","https://danieloculus0-bot.github.io/Axiom_Beta/erp/autonest.html"],
+  ["BEAN Workshop","https://danieloculus0-bot.github.io/BEAN/portfolio/"],
+  ["BEAN Home","https://danieloculus0-bot.github.io/BEAN/"]
+ ])assert.ok(html.includes('<a href="'+href+'">'+label+'</a>'),"Missing workshop route: "+label);
+ assert.match(html,/\.workshop-nav\{display:flex/);
+ assert.match(html,/<nav class="hero-links" aria-label="Development resources">/);
+});
