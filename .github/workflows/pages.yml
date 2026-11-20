@@ -40,12 +40,17 @@ jobs:
           node --check web/engine.test.mjs
           node --check web/units.mjs
           node --check web/units.test.mjs
+          node --check web/brake-sim.mjs
+          node --check web/brake-sim.test.mjs
+          node --check web/brake-lab.mjs
       - name: Run deterministic synthetic machining and costing tests
-        run: node --test web/engine.test.mjs web/units.test.mjs
+        run: node --test web/engine.test.mjs web/units.test.mjs web/brake-sim.test.mjs
       - name: Validate deployment and confidentiality boundary
         run: |
           test -s web/index.html
           test -s web/style.css
+          test -s web/brake-lab.html
+          grep -q '2D SECTION ONLY' web/brake-lab.html
           grep -q "NOT MACHINE VERIFIED" web/index.html
           grep -q "fictional_browser_example" web/engine.mjs
           grep -q "NOT_BEAN_CONNECTED" web/tool-inference.mjs
