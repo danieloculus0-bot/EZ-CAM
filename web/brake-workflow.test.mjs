@@ -45,6 +45,7 @@ test("invalid geometry cannot silently produce an approved or standalone estimat
 test("main EZ CAM provides embedded bend simulation, a shared preview, export and ecosystem navigation",()=>{
  const html=readFileSync(new URL("./index.html",import.meta.url),"utf8");
  const app=readFileSync(new URL("./app.mjs",import.meta.url),"utf8");
+ const workflow=readFileSync(new URL("./brake-workflow.mjs",import.meta.url),"utf8");
  assert.match(html,/id="brake-geometry"/);
  assert.match(html,/id="brake-optimize"/);
  assert.match(html,/id="brake-reset"/);
@@ -56,7 +57,7 @@ test("main EZ CAM provides embedded bend simulation, a shared preview, export an
  assert.match(app,/import\s+\{buildBrakeOperation,DEFAULT_BRAKE_SECTION\}/);
  assert.match(app,/function drawBrake\(/);
  assert.match(app,/activeBrakeSimulation=/);
- assert.match(app,/brake_review/);
+ assert.match(workflow,/brake_review/);
  assert.match(app,/activeBrakeOptimization/);
  assert.match(app,/brake-optimize/);
  assert.match(app,/brake-geometry/);
