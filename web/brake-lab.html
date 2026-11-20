@@ -7,6 +7,11 @@
 <title>EZ CAM | Brake Simulation Lab</title>
 <link rel="stylesheet" href="./style.css">
 <style>
+.workshop-nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
+.workshop-nav a{font-size:12px;font-weight:750;color:#ededed;background:#111;border:1px solid #414141;border-radius:7px;padding:8px 10px;white-space:nowrap}
+.workshop-nav a:hover,.workshop-nav a:focus-visible{background:#2c2c2c;border-color:#a6ca8d;text-decoration:none}
+.topbar .mode{margin-left:0}
+@media(max-width:1000px){.workshop-nav{order:3;flex-basis:100%;margin-left:0}.topbar .mode{margin-left:auto}}
 .brake-grid{display:grid;grid-template-columns:minmax(320px,430px) minmax(0,1fr);gap:16px;align-items:start}
 .brake-lab-textarea{display:block;width:100%;min-height:350px;resize:vertical;background:#070707;border:1px solid #555;color:#eee;border-radius:8px;padding:12px;font:12px/1.55 Consolas,monospace;margin-top:10px}
 .brake-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.brake-actions button{flex:1;min-width:110px}
@@ -18,12 +23,23 @@
 </style>
 </head>
 <body>
-<header class="topbar"><a class="brand" href="./"><span>EZ</span> CAM</a><span class="motto">BRAKE SIMULATION LAB</span><span class="mode">GEOMETRY REVIEW · NOT MACHINE VERIFIED</span></header>
+<header class="topbar">
+ <a class="brand" href="./" aria-label="EZ CAM home"><span>EZ</span> CAM</a>
+ <span class="motto">BRAKE SIMULATION LAB</span>
+ <nav class="workshop-nav" aria-label="Workshop navigation">
+  <a href="./">EZ CAM Home</a>
+  <a href="https://danieloculus0-bot.github.io/Axiom_Beta/erp/">Axiom ERP</a>
+  <a href="https://danieloculus0-bot.github.io/Axiom_Beta/erp/autonest.html">Axiom AutoNest</a>
+  <a href="https://danieloculus0-bot.github.io/BEAN/portfolio/">BEAN Workshop</a>
+  <a href="https://danieloculus0-bot.github.io/BEAN/">BEAN Home</a>
+ </nav>
+ <span class="mode">GEOMETRY REVIEW · NOT MACHINE VERIFIED</span>
+</header>
 <main>
 <section class="hero">
  <div><p class="kicker">EZ CAM / PRESS-BRAKE ENGINEERING</p><h1>Build the bend. <em>Check the sequence.</em></h1>
  <p>Real deterministic 2D fold kinematics for straight, parallel bend axes. Search bend orders, inspect each intermediate state, and test for section self-interference and supplied rectangular tool envelopes. This is not a 3D BySoft replacement or a validated machine simulation.</p></div>
- <nav class="hero-links"><a href="./">EZ CAM workbench</a><a href="https://danieloculus0-bot.github.io/Axiom_Beta/erp/autonest.html">Axiom AutoNest</a><a href="https://github.com/danieloculus0-bot/EZ-CAM">Source and tests</a></nav>
+ <nav class="hero-links" aria-label="Development resources"><a href="https://github.com/danieloculus0-bot/EZ-CAM">Source and tests</a><a href="https://danieloculus0-bot.github.io/BEAN/research-lab.html">BEAN Research Lab</a></nav>
 </section>
 <div class="brake-grid">
  <div class="panel">
