@@ -187,15 +187,14 @@ export function rankBendSequences(input,{candidate_limit=48}={}){
   evaluate(flanges.toSorted((a,b)=>a.size-b.size).map(x=>x.id));
   evaluate(flanges.toSorted((a,b)=>b.size-a.size).map(x=>x.id));
   let seed=0x7c0f2d1;
-  while(results.length<candidate_limit){
+  let attempts=0;
+  while(results.length<candidate_limit&&attempts++<candidate_limit*100){
    const order=[...ids];
    for(let i=order.length-1;i>0;i--){
     seed=(Math.imul(seed,1664525)+1013904223)>>>0;
     const j=seed%(i+1);[order[i],order[j]]=[order[j],order[i]];
    }
-   const before=results.length;
    evaluate(order);
-   if(seen.size>1000||seen.size===before&&results.length>=candidate_limit)break;
   }
  }
  results.sort((a,b)=>a.collision_frames-b.collision_frames||
