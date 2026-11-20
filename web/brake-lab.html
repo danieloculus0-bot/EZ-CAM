@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="EZ CAM brake-section fold simulation, synthetic geometric collision review and bend sequence search.">
+<title>EZ CAM | Brake Simulation Lab</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+.brake-grid{display:grid;grid-template-columns:minmax(320px,430px) minmax(0,1fr);gap:16px;align-items:start}
+.brake-lab-textarea{display:block;width:100%;min-height:350px;resize:vertical;background:#070707;border:1px solid #555;color:#eee;border-radius:8px;padding:12px;font:12px/1.55 Consolas,monospace;margin-top:10px}
+.brake-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.brake-actions button{flex:1;min-width:110px}
+#section-preview{display:block;width:100%;height:auto;min-height:290px;background:#050505;border:1px solid #343434;border-radius:8px}
+.brake-slider{display:flex;gap:10px;align-items:center;margin:14px 0}.brake-slider input{flex:1;accent-color:#a6ca8d}
+.brake-stats{display:flex;gap:12px;flex-wrap:wrap;color:#ddd;font-size:13px}
+.brake-stats strong{color:#a6ca8d}.brake-evidence{white-space:pre-wrap;line-height:1.6;color:#c5c5c5;font-size:12px}
+@media(max-width:950px){.brake-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="./"><span>EZ</span> CAM</a><span class="motto">BRAKE SIMULATION LAB</span><span class="mode">GEOMETRY REVIEW · NOT MACHINE VERIFIED</span></header>
+<main>
+<section class="hero">
+ <div><p class="kicker">EZ CAM / PRESS-BRAKE ENGINEERING</p><h1>Build the bend. <em>Check the sequence.</em></h1>
+ <p>Real deterministic 2D fold kinematics for straight, parallel bend axes. Search bend orders, inspect each intermediate state, and test for section self-interference and supplied rectangular tool envelopes. This is not a 3D BySoft replacement or a validated machine simulation.</p></div>
+ <nav class="hero-links"><a href="./">EZ CAM workbench</a><a href="https://danieloculus0-bot.github.io/Axiom_Beta/erp/autonest.html">Axiom AutoNest</a><a href="https://github.com/danieloculus0-bot/EZ-CAM">Source and tests</a></nav>
+</section>
+<div class="brake-grid">
+ <div class="panel">
+ <h2><span>01</span> FLAT SECTION + BEND PARAMETERS</h2>
+ <label>Machine family (reference only)<select id="brake-machine">
+ <option value="bystronic">Bystronic · unconfigured</option><option value="accurpress">Accurpress · unconfigured</option></select></label>
+ <p class="fine">This simulator does not infer tooling, ram geometry, tonnage, backgauges or controller settings from a manufacturer name.</p>
+ <label for="brake-input">Section geometry JSON, millimeters</label>
+ <textarea id="brake-input" class="brake-lab-textarea" spellcheck="false" aria-label="Flat section bend and obstacle definition"></textarea>
+ <p class="fine">Bends are parallel lines across a constant-width strip. Position is measured from the left flat edge; positive/negative angle controls fold direction. Each optional obstacle is an <strong>invented</strong> 2D rectangle in the local coordinate system of the active bend. The solver uses ideal sharp hinges and a thickness-based proximity check.</p>
+ <div class="brake-actions"><button id="brake-sim" type="button">SIMULATE</button><button id="brake-opt" class="secondary" type="button">SEARCH SEQUENCE</button><button id="brake-reset" class="secondary" type="button">RESET</button></div>
+ </div>
+ <div class="stage">
+  <div class="stage-head"><div><h2>BEND-BY-BEND SECTION VIEW</h2><p>Green: ideal strip centerline. Amber: supplied section obstacles. Red: sampled interference.</p></div><span class="unverified">2D SECTION ONLY</span></div>
+  <div style="padding:15px"><svg id="section-preview" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Generated 2D folding sequence section geometry">
+   <text x="30" y="45" fill="#bcbcbc">Simulate a synthetic section to view each bend.</text></svg>
+   <div class="brake-slider"><span id="brake-frame-label">No sequence</span><input id="brake-frame" type="range" min="0" max="0" value="0" disabled aria-label="Simulation frame"><span id="brake-frame-index">0 / 0</span></div>
+   <div id="brake-stats" class="brake-stats">No simulation yet.</div>
+   <div id="brake-result" class="result" role="status">Select SIMULATE or SEARCH SEQUENCE. No machine control output is available.</div>
+   <pre id="brake-evidence" class="brake-evidence"></pre>
+   <button id="brake-export" class="secondary" type="button" disabled>Export review evidence JSON</button>
+  </div>
+ </div>
+</div>
+<footer><p>EZ CAM · Section-only collision sampling does not establish machine feasibility, approved tooling, bend allowance, a production program, or live BEAN intelligence. Public examples use invented geometry.</p></footer>
+</main>
+<script type="module" src="./brake-lab.mjs"></script>
+</body></html>
