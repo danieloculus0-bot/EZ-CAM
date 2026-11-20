@@ -43,13 +43,17 @@ jobs:
           node --check web/brake-sim.mjs
           node --check web/brake-sim.test.mjs
           node --check web/brake-lab.mjs
+          node --check web/brake-workflow.mjs
+          node --check web/brake-workflow.test.mjs
       - name: Run deterministic synthetic machining and costing tests
-        run: node --test web/engine.test.mjs web/units.test.mjs web/brake-sim.test.mjs
+        run: node --test web/engine.test.mjs web/units.test.mjs web/brake-sim.test.mjs web/brake-workflow.test.mjs
       - name: Validate deployment and confidentiality boundary
         run: |
           test -s web/index.html
           test -s web/style.css
           test -s web/brake-lab.html
+          grep -q 'id="brake-geometry"' web/index.html
+          grep -q 'id="brake-optimize"' web/index.html
           grep -q '2D SECTION ONLY' web/brake-lab.html
           grep -q "NOT MACHINE VERIFIED" web/index.html
           grep -q "fictional_browser_example" web/engine.mjs

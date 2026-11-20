@@ -1,6 +1,6 @@
 # EZ CAM press-brake section simulator
 
-The existing EZ CAM browser workbench has generic Bystronic and Accurpress machine-family selections and an **assumption-based press-brake cycle-time estimator**. The new [brake simulation lab](../web/brake-lab.html) extends the same codebase rather than starting another CAM project.
+The existing EZ CAM browser workbench has generic Bystronic and Accurpress machine-family selections. Select either on the **[EZ CAM home workbench](../web/index.html)** to edit flat-section geometry, simulate or optimize bend order, watch the same main canvas used for CAM path previews, and produce an assumption-based cycle-time quote with evidence from the **same bend geometry**. The [full-screen brake simulation lab](../web/brake-lab.html) shares the identical solver but is optional, not a disconnected required screen.
 
 ## Implemented in the new section lab
 
@@ -11,7 +11,8 @@ The existing EZ CAM browser workbench has generic Bystronic and Accurpress machi
 - Try alternate bend orders and rank by number of sampled 2D interference frames, then collision events. The finite deterministic search examines up to a configured candidate limit.
 - Export the input, intermediate states, collision observations, ranking evidence and limitations as review-only JSON.
 
-The v1 simulator does **not** import actual STEP sheet-metal bends, perform bending/unfolding compensation, resolve bend lines from arbitrary nesting polygons, select real machines/tools, calculate force, calculate backgauge fingers, account for curved bend zones, or detect full machine/part 3D swept collisions.
+The integrated browser workbench uses `web/brake-workflow.mjs` to connect the existing `brake-sim.mjs` geometry solver to `machines.mjs` estimating. It derives bend count from the section and exports `ezcam.brake_review_evidence.v1` within the unverified estimate, including full sampled frames and optional sequence comparison. Source units for editable section JSON are always **millimeters**, even when the rest of the workbench is displayed in inches. No live BEAN call is made.
+\nThe v1 simulator does **not** import actual STEP sheet-metal bends, perform bending/unfolding compensation, resolve bend lines from arbitrary nesting polygons, select real machines/tools, calculate force, calculate backgauge fingers, account for curved bend zones, or detect full machine/part 3D swept collisions.
 
 The 2D strip can be treated as a real kinematic geometric calculation for the stated simplified model, **not** as actual press-brake manufacturing verification. Zero sampled collisions does not establish feasibility. The browser has no connection to a BEAN reasoning model or approved controller post.
 
