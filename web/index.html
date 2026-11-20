@@ -22,7 +22,7 @@
   <section class="hero">
     <div><p class="kicker">Intelligent machining, without the menu maze</p>
       <h1>Set up. <em>Simulate a path.</em><br>Understand the cost.</h1>
-      <p>Explore a genuine mathematical facing path, transparent cutter inference and single-operation estimates. This public lab is entirely fictional. For real local STEP inspection, use the separate desktop application.</p>
+      <p>Explore 3-axis facing paths, integrated press-brake section simulation and bend-sequence search, transparent cutter inference, and single-operation estimates. The public examples are entirely fictional; actual local STEP inspection is in the desktop application.</p>
     </div>
     <nav class="hero-links"><a href="https://github.com/danieloculus0-bot/EZ-CAM">Desktop STEP app + source</a><a href="./brake-lab.html">Press-brake section simulation</a><a href="https://danieloculus0-bot.github.io/Axiom_Beta/erp/">Axiom ERP demo</a><a href="https://danieloculus0-bot.github.io/BEAN/portfolio/">Project directory</a><a href="https://danieloculus0-bot.github.io/BEAN/">BEAN home</a></nav>
   </section>
@@ -68,13 +68,21 @@
           <label>Seconds per pierce<input id="piercetime" type="number" min="0" max="300" value="1.5"></label>
         </div>
       </section>
-      <section class="panel" id="brake-fields" hidden><h2><span>02</span> PRESS BRAKE TIME INPUTS</h2>
-        <p class="fine">This panel estimates cycle time only. For real 2D fold geometry, sampled interference and bend-order search, <a href="./brake-lab.html">open the EZ CAM brake simulation lab</a>. No machine-specific collision, tonnage or tooling verification.</p>
-        <div class="fields two">
-          <label>Bends per part<input id="bends" type="number" min="0" max="10000" step="1" value="4"></label>
+      <section class="panel" id="brake-fields" hidden>
+        <h2><span>02</span> PRESS BRAKE · BEND GEOMETRY</h2>
+        <p class="fine">The brake simulator is built into EZ CAM. Edit a flat 2D section, then use <strong>SIMULATE + ESTIMATE</strong> below or <strong>SEARCH BEND SEQUENCES</strong> to compare bend orders. The same geometry drives the cost estimate and the main preview.</p>
+        <label for="brake-geometry">Flat section / bend list (JSON, <strong>mm</strong>)</label>
+        <textarea id="brake-geometry" rows="13" spellcheck="false" aria-label="Flat section geometry and bend definitions in millimeters"></textarea>
+        <p class="fine">Section geometry stays in mm even if the display-unit selector is inches. This is an idealized strip with parallel bend axes, not a 3D CAD or machine model. Optional 2D rectangular obstruction envelopes are supported.</p>
+        <button id="brake-optimize" class="secondary" type="button">SEARCH BEND SEQUENCES</button>
+        <button id="brake-reset" class="secondary" type="button">RESTORE EXAMPLE</button>
+        <div class="fields two" style="margin-top:12px">
+          <label>Bends from section<input id="bends" type="number" min="1" max="12" value="2" readonly aria-label="Bend count derived from geometry"></label>
           <label>Assumed sec/bend<input id="bendtime" type="number" min="0" max="600" value="18"></label>
           <label>Handling sec/part<input id="handling" type="number" min="0" max="10000" value="20"></label>
         </div>
+        <div id="brake-evidence" class="fine" role="status" aria-live="polite">A bend simulation has not been generated.</div>
+        <p class="fine">For a dedicated full-screen view, <a href="./brake-lab.html">open Brake Simulation Lab</a>. Both workbenches share the same geometric solver.</p>
       </section>
       <section class="panel"><h2><span>04</span> QUOTE ASSUMPTIONS</h2>
         <div class="fields two">
@@ -91,11 +99,12 @@
     </aside>
     <section class="stage">
       <div class="stage-head"><div><h2 id="stage-title">TOP VIEW / FACING PATH</h2><p id="stage-note">Synthetic demo stock. Cutter-center paths only, not removal simulation.</p></div><span class="unverified">NOT MACHINE VERIFIED</span></div>
-      <canvas id="preview" width="960" height="620" aria-label="Synthetic stock and facing cutter path visualization" role="img"></canvas>
-      <div class="playbar"><span>PATH PLAYBACK</span><input id="progress" aria-label="Path playback progress" type="range" min="0" max="100" value="100"><button id="replay" type="button" class="secondary">Replay</button></div>
+      <canvas id="preview" width="960" height="620" aria-label="EZ CAM synthetic facing or press-brake section visualization" role="img"></canvas>
+      <div id="brake-frame-info" class="brake-frame-info" hidden aria-live="off">Bend sequence playback</div>
+      <div class="playbar"><span id="playbar-label">PATH PLAYBACK</span><input id="progress" aria-label="Path playback progress" type="range" min="0" max="100" value="100"><button id="replay" type="button" class="secondary">Replay</button></div>
       <section class="outcome"><div class="metric"><span>Est. motion / part</span><strong id="motion">—</strong></div><div class="metric"><span>Est. operation total</span><strong id="cost">—</strong></div><div class="metric"><span>Est. operation / part</span><strong id="unitcost">—</strong></div></section>
       <div id="result" class="result" role="status" aria-live="polite">Build an estimate to see a calculated result. Pricing inputs are illustrative, not your shop's rates.</div>
-      <p class="disclaimer">Every example is generic and synthetic. No proprietary drawings, equipment settings or customer data are loaded. No connected BEAN agent, production CAM, approved quote, collision simulation or controller post is present. Program export is never machine-ready.</p>
+      <p class="disclaimer">Every example is generic and synthetic. No proprietary drawings, equipment settings or customer data are loaded. The brake mode checks sampled 2D sectional interference only, not machine/3D tooling collisions. No connected BEAN agent, production CAM, approved quote or controller post is present.</p>
     </section>
   </div>
   <footer><p>EZ CAM · <a href="https://github.com/danieloculus0-bot/EZ-CAM">Standalone source</a> · <a href="https://github.com/danieloculus0-bot/EZ-FEA">Related EZ-FEA</a> · <a href="https://github.com/danieloculus0-bot/BEAN">BEAN research</a> · Independent review required</p></footer>
