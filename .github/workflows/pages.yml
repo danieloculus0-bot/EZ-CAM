@@ -45,8 +45,10 @@ jobs:
           node --check web/brake-lab.mjs
           node --check web/brake-workflow.mjs
           node --check web/brake-workflow.test.mjs
+          node --check web/brake-challenge.mjs
+          node --check web/brake-challenge.test.mjs
       - name: Run deterministic synthetic machining and costing tests
-        run: node --test web/engine.test.mjs web/units.test.mjs web/brake-sim.test.mjs web/brake-workflow.test.mjs
+        run: node --test web/engine.test.mjs web/units.test.mjs web/brake-sim.test.mjs web/brake-workflow.test.mjs web/brake-challenge.test.mjs
       - name: Validate deployment and confidentiality boundary
         run: |
           test -s web/index.html
