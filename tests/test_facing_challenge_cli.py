@@ -47,6 +47,16 @@ class FacingChallengeCLITests(unittest.TestCase):
         self.assertEqual(completed.returncode, 2)
         self.assertFalse(json.loads(completed.stdout)["ok"])
 
+    def test_invalid_utf8_has_machine_readable_failure(self):
+        completed = subprocess.run(
+            [sys.executable, "-m", "ezcam.facing_challenge_cli"],
+            input=b"\xff", capture_output=True, check=False,
+        )
+        self.assertEqual(completed.returncode, 2)
+        receipt = json.loads(completed.stdout)
+        self.assertFalse(receipt["ok"])
+        self.assertIn("utf-8", receipt["error"].lower())
+
     def test_malformed_json_has_machine_readable_failure(self):
         completed = subprocess.run(
             [sys.executable, "-m", "ezcam.facing_challenge_cli"],

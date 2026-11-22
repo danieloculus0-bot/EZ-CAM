@@ -43,7 +43,7 @@ def main() -> int:
         request = json.loads(raw)
         receipt = {"ok": True, **handle_request(request)}
         exit_code = 0
-    except (ValueError, TypeError, OverflowError, KeyError) as exc:
+    except (ValueError, TypeError, OverflowError, KeyError, UnicodeError) as exc:
         receipt = {"ok": False, "error": str(exc)}
         exit_code = 2
     print(json.dumps(receipt, sort_keys=True, allow_nan=False))
