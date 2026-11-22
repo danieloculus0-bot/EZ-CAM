@@ -50,7 +50,7 @@ class FacingChallengeCLITests(unittest.TestCase):
     def test_invalid_utf8_has_machine_readable_failure(self):
         completed = subprocess.run(
             [sys.executable, "-m", "ezcam.facing_challenge_cli"],
-            input=b"\\xff", capture_output=True, check=False,
+            input=b"\xff", capture_output=True, check=False,
         )
         self.assertEqual(completed.returncode, 2)
         receipt = json.loads(completed.stdout)
